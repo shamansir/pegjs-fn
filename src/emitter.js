@@ -53,6 +53,7 @@ PEG.compiler.emitter = function(ast) {
       return escaped.length > 0 ? push('"' + escaped + '"') : '';
     }
 
+
     var Codie = {
       /*
        * Specifies by how many characters do #if/#else and #for unindent their
@@ -194,7 +195,7 @@ PEG.compiler.emitter = function(ast) {
         /* Compile the template. */
         while ((match = /^([ \t]*)#([a-zA-Z_][a-zA-Z0-9_]*)(?:[ \t]+([^ \t\n][^\n]*))?[ \t]*(?:\n|$)|#\{([^}]*)\}/m.exec(template)) !== null) {
           code += pushRaw(template, match.index, state);
-          result = match[2] !== undefined && match[2] !== ""
+          result = (match[2] !== undefined) && (match[2] !== "")
             ? compileCommand(state, match[1], match[2], match[3] || "") // #-command
             : compileExpr(state, match[4]);                             // #{...}
           code += result[0];
@@ -595,6 +596,7 @@ PEG.compiler.emitter = function(ast) {
             '    #else',
             '      if (input.substr(pos, #{node.value.length}) === #{string(node.value)}) {',
             '    #end',
+            '      #{resultVar} = #{string(node.value)};',            
             '  #else',
             /*
              * One-char literals are not optimized when case-insensitive
@@ -605,12 +607,8 @@ PEG.compiler.emitter = function(ast) {
              * characters.
              */
             '    if (input.substr(pos, #{node.value.length}).toLowerCase() === #{string(node.value.toLowerCase())}) {',
+            '    #{resultVar} = input.substr(pos, #{node.value.length});',            
             '  #end',
-            '    #if !node.ignoreCase',
-            '      #{resultVar} = #{string(node.value)};',
-            '    #else',
-            '      #{resultVar} = input.substr(pos, #{node.value.length});',
-            '    #end',
             '    pos += #{node.value.length};',
             '  } else {',
             '    #{resultVar} = null;',

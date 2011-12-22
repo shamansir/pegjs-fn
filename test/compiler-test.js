@@ -183,7 +183,7 @@ test("actions", function() {
   parses(actionKnowsPositionInsideParser, "acdef", [["a", "c"], 2]);
 
   var actionKnowsEndPositionInsideParser = PEG.buildParser(
-    'start = "e" "d" ([b-c]* { return _chunk.end; }) "a"'
+    'start = "e" "d" ([bc]* { return _chunk.end; }) "a"'
   );
   parses(actionKnowsEndPositionInsideParser, "edcba", ["e", "d", 4, "a"]);
 
