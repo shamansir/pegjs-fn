@@ -243,17 +243,7 @@ PEG.compiler.emitter = function(ast) {
             '     * unsuccessful, throws |PEG.parser.SyntaxError| describing the error.',
             '     */',
             '    parse: function(input, startRule) {',
-            '      var parseFunctions = {',
-            '        #block parseFunctionTableItems.join(",\\n")',
-            '      };',
-            '      ',
-            '      if (startRule !== undefined) {',
-            '        if (parseFunctions[startRule] === undefined) {',
-            '          throw new Error("Invalid rule name: " + quote(startRule) + ".");',
-            '        }',
-            '      } else {',
-            '        startRule = #{string(startRule)};',
-            '      }',
+            '      var rules = {};',
             '      ',
             '      var pos = 0;',
             '      var reportFailures = 0;', // 0 = report, anything > 0 = do not report
@@ -400,8 +390,16 @@ PEG.compiler.emitter = function(ast) {
             '      #if initializerCode !== ""',
             '        #block initializerCode',
             '      #end',
+            '      ',            
+            '      if (startRule !== undefined) {',
+            '        if (rules[startRule] === undefined) {',
+            '          throw new Error("Invalid rule name: " + quote(startRule) + ".");',
+            '        }',
+            '      } else {',
+            '        startRule = #{string(startRule)};',
+            '      }',            
             '      ',
-            '      var result = parseFunctions[startRule]();',
+            '      var result = rules[startRule]();',
             '      ',
             '      /*',
             '       * The parser is now in one of the following three states:',
@@ -458,7 +456,7 @@ PEG.compiler.emitter = function(ast) {
             '})()'
           ],
           rule: [
-            'function parse_#{node.name}() {',
+            'rules.#{node.name} = function() {',
             '  var cacheKey = "#{node.name}@" + pos;',
             '  var cachedResult = cache[cacheKey];',
             '  if (cachedResult) {',
@@ -584,7 +582,7 @@ PEG.compiler.emitter = function(ast) {
             '}'            
           ],
           rule_ref: [
-            '#{resultVar} = parse_#{node.name}();'
+            '#{resultVar} = rules.#{node.name}();'
           ],
           literal: [
             '#if node.value.length === 0',
@@ -665,12 +663,6 @@ PEG.compiler.emitter = function(ast) {
         : "";
       var name;
 
-      var parseFunctionTableItems = [];
-      for (name in node.rules) {
-        parseFunctionTableItems.push(quote(name) + ": parse_" + name);
-      }
-      parseFunctionTableItems.sort();
-
       var parseFunctionDefinitions = [];
       for (name in node.rules) {
         parseFunctionDefinitions.push(emit(node.rules[name]));
@@ -678,7 +670,6 @@ PEG.compiler.emitter = function(ast) {
 
       return fill("grammar", {
         initializerCode:          initializerCode,
-        parseFunctionTableItems:  parseFunctionTableItems,
         parseFunctionDefinitions: parseFunctionDefinitions,
         startRule:                node.startRule
       });
