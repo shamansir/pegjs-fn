@@ -243,14 +243,14 @@ PEG.compiler.emitter = function(ast) {
             '     * unsuccessful, throws |PEG.parser.SyntaxError| describing the error.',
             '     */',
             '    parse: function(input, startRule) {',
-            '      var rules = {};',
+            '      var rules = {};', // TODO: move rules to outer object 
             '      ',
-            '      var pos = 0;',
-            '      var reportFailures = 0;', // 0 = report, anything > 0 = do not report
-            '      var rightmostFailuresPos = 0;',
-            '      var rightmostFailuresExpected = [];',
-            '      var cache = {};',
-            '      var _chunk = {"pos":-1,"end":-1,"match":""};',            
+            '      var pos = 0,', // TODO: pack failures in context
+            '          failures = { rightestAt: 0, expected: [] },',
+            '          stack = [],',
+            '          cache = {};',
+            //'      var reportFailures = 0;', // 0 = report, anything > 0 = do not report
+            //'      var _chunk = {"pos":-1,"end":-1,"match":""};',            
             '      ',
             /* This needs to be in sync with |padLeft| in utils.js. */
             '      function padLeft(input, padding, length) {',
@@ -305,50 +305,50 @@ PEG.compiler.emitter = function(ast) {
             '          + \'"\';',
             '      }',
             '      ',
-            '      function matchFailed(failure) {',
-            '        if (pos < rightmostFailuresPos) {',
+            '      function failed(failure) {',
+            '        if (pos < failures.rightestAt) {',
             '          return;',
             '        }',
             '        ',
-            '        if (pos > rightmostFailuresPos) {',
-            '          rightmostFailuresPos = pos;',
-            '          rightmostFailuresExpected = [];',
+            '        if (pos > failures.rightestAt) {',
+            '          failures.rightestAt = pos;',
+            '          failures.expected = [];',
             '        }',
             '        ',
-            '        rightmostFailuresExpected.push(failure);',
+            '        failures.expected.push(failure);',
             '      }',
             '      ',
-            '      #for definition in parseFunctionDefinitions',
+            '      #for definition in parseFunctions',
             '        #block definition',
             '        ',
             '      #end',
             '      function buildErrorMessage() {',
-            '        function buildExpected(failuresExpected) {',
-            '          failuresExpected.sort();',
+            '        function buildExpected(expected) {', // TODO: move to the outer object
+            '          expected.sort();',
             '          ',
-            '          var lastFailure = null;',
-            '          var failuresExpectedUnique = [];',
-            '          for (var i = 0; i < failuresExpected.length; i++) {',
-            '            if (failuresExpected[i] !== lastFailure) {',
-            '              failuresExpectedUnique.push(failuresExpected[i]);',
-            '              lastFailure = failuresExpected[i];',
+            '          var last = null;',
+            '          var unique = [];',
+            '          for (var i = 0; i < expected.length; i++) {',
+            '            if (expected[i] !== last) {',
+            '              unique.push(expected[i]);',
+            '              last = expected[i];',
             '            }',
             '          }',
             '          ',
-            '          switch (failuresExpectedUnique.length) {',
+            '          switch (unique.length) {',
             '            case 0:',
             '              return "end of input";',
             '            case 1:',
-            '              return failuresExpectedUnique[0];',
+            '              return unique[0];',
             '            default:',
-            '              return failuresExpectedUnique.slice(0, failuresExpectedUnique.length - 1).join(", ")',
+            '              return unique.slice(0, unique.length - 1).join(", ")',
             '                + " or "',
-            '                + failuresExpectedUnique[failuresExpectedUnique.length - 1];',
+            '                + unique[unique.length - 1];',
             '          }',
             '        }',
             '        ',
-            '        var expected = buildExpected(rightmostFailuresExpected);',
-            '        var actualPos = Math.max(pos, rightmostFailuresPos);',
+            '        var expected = buildExpected(failures.expected);',
+            '        var actualPos = Math.max(pos, failures.rightestAt);',
             '        var actual = actualPos < input.length',
             '          ? quote(input.charAt(actualPos))',
             '          : "end of input";',
@@ -356,7 +356,7 @@ PEG.compiler.emitter = function(ast) {
             '        return "Expected " + expected + " but " + actual + " found.";',
             '      }',
             '      ',
-            '      function computeErrorPosition() {',
+            '      function computeErrorPos() {',
             '        /*',
             '         * The first idea was to use |String.split| to break the input up to the',
             '         * error position along newlines and derive the line and column from',
@@ -384,11 +384,11 @@ PEG.compiler.emitter = function(ast) {
             '          }',
             '        }',
             '        ',
-            '        return { line: line, column: column };',
+            '        return [ line, column ];',
             '      }',
             '      ',
-            '      #if initializerCode !== ""',
-            '        #block initializerCode',
+            '      #if initializer !== ""',
+            '        #block initializer',
             '      #end',
             '      ',            
             '      if (startRule !== undefined) {',
@@ -408,29 +408,27 @@ PEG.compiler.emitter = function(ast) {
             '       *',
             '       *    - |result !== null|',
             '       *    - |pos === input.length|',
-            '       *    - |rightmostFailuresExpected| may or may not contain something',
+            '       *    - |failures.expected| may or may not contain something',
             '       *',
             '       * 2. The parser successfully parsed only a part of the input.',
             '       *',
             '       *    - |result !== null|',
             '       *    - |pos < input.length|',
-            '       *    - |rightmostFailuresExpected| may or may not contain something',
+            '       *    - |failures.expected| may or may not contain something',
             '       *',
             '       * 3. The parser did not successfully parse any part of the input.',
             '       *',
             '       *   - |result === null|',
             '       *   - |pos === 0|',
-            '       *   - |rightmostFailuresExpected| contains at least one failure',
+            '       *   - |failures.expected| contains at least one failure',
             '       *',
             '       * All code following this comment (including called functions) must',
             '       * handle these states.',
             '       */',
             '      if (result === null || pos !== input.length) {',
-            '        var errorPosition = computeErrorPosition();',
-            '        throw new this.SyntaxError(',
-            '          buildErrorMessage(),',
-            '          errorPosition.line,',
-            '          errorPosition.column',
+            '        var errorPos = computeErrorPos();',
+            '        throw new this.SyntaxError(', // TODO: test syntax error
+            '          buildErrorMessage(), errorPos',
             '        );',
             '      }',
             '      ',
@@ -443,11 +441,11 @@ PEG.compiler.emitter = function(ast) {
             '  ',
             '  /* Thrown when a parser encounters a syntax error. */',
             '  ',
-            '  result.SyntaxError = function(message, line, column) {',
+            '  result.SyntaxError = function(message, errorPos) {',
             '    this.name = "SyntaxError";',
             '    this.message = message;',
-            '    this.line = line;',
-            '    this.column = column;',
+            '    this.line = errorPos[0];',
+            '    this.column = errorPos[1];',
             '  };',
             '  ',
             '  result.SyntaxError.prototype = Error.prototype;',
@@ -658,20 +656,20 @@ PEG.compiler.emitter = function(ast) {
 
   var emit = buildNodeVisitor({
     grammar: function(node) {
-      var initializerCode = node.initializer !== null
+      var initializer = node.initializer !== null
         ? emit(node.initializer)
         : "";
       var name;
 
-      var parseFunctionDefinitions = [];
+      var parseFunctions = [];
       for (name in node.rules) {
-        parseFunctionDefinitions.push(emit(node.rules[name]));
+        parseFunctions.push(emit(node.rules[name]));
       }
 
       return fill("grammar", {
-        initializerCode:          initializerCode,
-        parseFunctionDefinitions: parseFunctionDefinitions,
-        startRule:                node.startRule
+        initializer:    initializer,
+        parseFunctions: parseFunctions,
+        startRule:      node.startRule
       });
     },
 
@@ -680,7 +678,7 @@ PEG.compiler.emitter = function(ast) {
     },
 
     rule: function(node) {
-      var context = {
+      /* var context = {
         resultIndex: 0,
         posIndex:    0,
         delta:       function(resultIndexDelta, posIndexDelta) {
@@ -698,7 +696,7 @@ PEG.compiler.emitter = function(ast) {
         posVars:    map(range(node.posStackDepth), posVar),
         code:       emit(node.expression, context),
         resultVar:  resultVar(context.resultIndex)
-      });
+      });*/
     },
 
     /*
@@ -732,7 +730,7 @@ PEG.compiler.emitter = function(ast) {
      */
 
     choice: function(node, context) {
-      var code, nextAlternativesCode;
+      /*var code, nextAlternativesCode;
 
       for (var i = node.alternatives.length - 1; i >= 0; i--) {
         nextAlternativesCode = i !== node.alternatives.length - 1
@@ -747,11 +745,11 @@ PEG.compiler.emitter = function(ast) {
         });
       }
 
-      return code;
+      return code;*/
     },
 
     sequence: function(node, context) {
-      var elementResultVars = map(node.elements, function(element, i) {
+      /*var elementResultVars = map(node.elements, function(element, i) {
         return resultVar(context.resultIndex + i);
       });
 
@@ -771,31 +769,31 @@ PEG.compiler.emitter = function(ast) {
         });
       }
 
-      return fill("sequence", { code: code, posVar: posVar(context.posIndex) });
+      return fill("sequence", { code: code, posVar: posVar(context.posIndex) }); */
     },
 
     labeled: function(node, context) {
-      return emit(node.expression, context);
+      /*return emit(node.expression, context);*/
     },
 
     simple_and: function(node, context) {
-      return fill("simple_and", {
+      /* return fill("simple_and", {
         expressionCode: emit(node.expression, context.delta(0, 1)),
         posVar:         posVar(context.posIndex),
         resultVar:      resultVar(context.resultIndex)
-      });
+      }); */
     },
 
     simple_not: function(node, context) {
-      return fill("simple_not", {
+      /* return fill("simple_not", {
         expressionCode: emit(node.expression, context.delta(0, 1)),
         posVar:         posVar(context.posIndex),
         resultVar:      resultVar(context.resultIndex)
-      });
+      }); */
     },
 
     semantic_and: function(node, context, previousResults) {
-      var formalParams = [];
+      /*var formalParams = [];
       var actualParams = [];
       if (node.previousElements !== undefined) {
         for (var i = 0; i < node.previousElements.length; i++) {
@@ -811,11 +809,11 @@ PEG.compiler.emitter = function(ast) {
         resultVar:    resultVar(context.resultIndex),
         formalParams: formalParams,
         actualParams: actualParams
-      });
+      });*/
     },
 
     semantic_not: function(node, context, previousResults) {
-      var formalParams = [];
+      /*var formalParams = [];
       var actualParams = [];
       if (node.previousElements !== undefined) {
         for (var i = 0; i < node.previousElements.length; i++) {
@@ -831,30 +829,30 @@ PEG.compiler.emitter = function(ast) {
         resultVar:    resultVar(context.resultIndex),
         formalParams: formalParams,
         actualParams: actualParams
-      });
+      });*/
     },
 
     optional: function(node, context) {
-      return fill("optional", {
+      /*return fill("optional", {
         expressionCode: emit(node.expression, context),
         resultVar:      resultVar(context.resultIndex)
-      });
+      });*/
     },
 
     zero_or_more: function(node, context) {
-      return fill("zero_or_more", {
+      /*return fill("zero_or_more", {
         expressionCode:      emit(node.expression, context.delta(1, 0)),
         expressionResultVar: resultVar(context.resultIndex + 1),
         resultVar:           resultVar(context.resultIndex)
-      });
+      });*/
     },
 
     one_or_more: function(node, context) {
-      return fill("one_or_more", {
+      /*return fill("one_or_more", {
         expressionCode:      emit(node.expression, context.delta(1, 0)),
         expressionResultVar: resultVar(context.resultIndex + 1),
         resultVar:           resultVar(context.resultIndex)
-      });
+      });*/
     },
 
     action: function(node, context) {
@@ -867,7 +865,7 @@ PEG.compiler.emitter = function(ast) {
        * This behavior is reflected in this function.
        */
 
-      var formalParams;
+      /*var formalParams;
       var actualParams;
 
       if (node.expression.type === "sequence") {
@@ -898,29 +896,29 @@ PEG.compiler.emitter = function(ast) {
         actualParams:   actualParams,
         posVar:         posVar(context.posIndex),
         resultVar:      resultVar(context.resultIndex)
-      });
+      });*/
     },
 
     rule_ref: function(node, context) {
-      return fill("rule_ref", {
+      /*return fill("rule_ref", {
         node:      node,
         resultVar: resultVar(context.resultIndex)
-      });
+      });*/
     },
 
     literal: function(node, context) {
-      return fill("literal", {
+      /*return fill("literal", {
         node:      node,
         resultVar: resultVar(context.resultIndex)
-      });
+      });*/
     },
 
     any: function(node, context) {
-      return fill("any", { resultVar: resultVar(context.resultIndex) });
+      /*return fill("any", { resultVar: resultVar(context.resultIndex) });*/
     },
 
     "class": function(node, context) {
-      var regexp;
+      /*var regexp;
 
       if (node.parts.length > 0) {
         regexp = '/^['
@@ -934,10 +932,10 @@ PEG.compiler.emitter = function(ast) {
             }).join('')
           + ']/' + (node.ignoreCase ? 'i' : '');
       } else {
-        /*
+        */ /*
          * Stupid IE considers regexps /[]/ and /[^]/ syntactically invalid, so
          * we translate them into euqivalents it can handle.
-         */
+         */ /*
         regexp = node.inverted ? '/^[\\S\\s]/' : '/^(?!)/';
       }
 
@@ -945,7 +943,7 @@ PEG.compiler.emitter = function(ast) {
         node:      node,
         regexp:    regexp,
         resultVar: resultVar(context.resultIndex)
-      });
+      });*/
     }
   });
 
