@@ -356,7 +356,7 @@ PEG.compiler.emitter = function(ast) {
             '        return "Expected " + expected + " but " + actual + " found.";',
             '      }',
             '      ',
-            '      function computeErrorPos() {',
+            '      function computeErrPos() {',
             '        /*',
             '         * The first idea was to use |String.split| to break the input up to the',
             '         * error position along newlines and derive the line and column from',
@@ -426,7 +426,7 @@ PEG.compiler.emitter = function(ast) {
             '       * handle these states.',
             '       */',
             '      if (result === null || pos !== input.length) {',
-            '        var errorPos = computeErrorPos();',
+            '        var errorPos = computeErrPos();',
             '        throw new this.SyntaxError(', // TODO: test syntax error
             '          buildErrorMessage(), errorPos',
             '        );',
@@ -445,8 +445,8 @@ PEG.compiler.emitter = function(ast) {
             '    this.name = "SyntaxError";',
             '    this.message = message;',
             '    this.line = errorPos[0];',
-            '    this.column = errorPos[1];',
-            '  };',
+            '    this.column = errorPos[1];', 
+            '  };', // TODO: add expected names / types of nodes to SyntaxError
             '  ',
             '  result.SyntaxError.prototype = Error.prototype;',
             '  ',
@@ -674,10 +674,13 @@ PEG.compiler.emitter = function(ast) {
     },
 
     initializer: function(node) {
+      console.log('initializer', node);
       return node.code;
     },
 
     rule: function(node) {
+      console.log('rule', node);
+      // TODO: remove resultStackDepth/posStackDepth and stuff if we will not use them
       /* var context = {
         resultIndex: 0,
         posIndex:    0,
@@ -730,6 +733,7 @@ PEG.compiler.emitter = function(ast) {
      */
 
     choice: function(node, context) {
+      console.log('choise', node);
       /*var code, nextAlternativesCode;
 
       for (var i = node.alternatives.length - 1; i >= 0; i--) {
@@ -749,6 +753,7 @@ PEG.compiler.emitter = function(ast) {
     },
 
     sequence: function(node, context) {
+      console.log('sequence', node);
       /*var elementResultVars = map(node.elements, function(element, i) {
         return resultVar(context.resultIndex + i);
       });
@@ -773,10 +778,12 @@ PEG.compiler.emitter = function(ast) {
     },
 
     labeled: function(node, context) {
+      console.log('labeled', node.expression);
       /*return emit(node.expression, context);*/
     },
 
     simple_and: function(node, context) {
+      console.log('simple_and', node.expression);
       /* return fill("simple_and", {
         expressionCode: emit(node.expression, context.delta(0, 1)),
         posVar:         posVar(context.posIndex),
@@ -785,6 +792,7 @@ PEG.compiler.emitter = function(ast) {
     },
 
     simple_not: function(node, context) {
+      console.log('simple_not', node.expression);
       /* return fill("simple_not", {
         expressionCode: emit(node.expression, context.delta(0, 1)),
         posVar:         posVar(context.posIndex),
@@ -793,6 +801,7 @@ PEG.compiler.emitter = function(ast) {
     },
 
     semantic_and: function(node, context, previousResults) {
+      console.log('sem_and', node.expression);
       /*var formalParams = [];
       var actualParams = [];
       if (node.previousElements !== undefined) {
@@ -813,6 +822,7 @@ PEG.compiler.emitter = function(ast) {
     },
 
     semantic_not: function(node, context, previousResults) {
+      console.log('sem_not', node.expression);
       /*var formalParams = [];
       var actualParams = [];
       if (node.previousElements !== undefined) {
@@ -833,6 +843,7 @@ PEG.compiler.emitter = function(ast) {
     },
 
     optional: function(node, context) {
+      console.log('optional', node.expression);
       /*return fill("optional", {
         expressionCode: emit(node.expression, context),
         resultVar:      resultVar(context.resultIndex)
@@ -840,6 +851,7 @@ PEG.compiler.emitter = function(ast) {
     },
 
     zero_or_more: function(node, context) {
+      console.log('zero_or_more', node.expression);
       /*return fill("zero_or_more", {
         expressionCode:      emit(node.expression, context.delta(1, 0)),
         expressionResultVar: resultVar(context.resultIndex + 1),
@@ -848,6 +860,7 @@ PEG.compiler.emitter = function(ast) {
     },
 
     one_or_more: function(node, context) {
+      console.log('one_or_more', node.expression);
       /*return fill("one_or_more", {
         expressionCode:      emit(node.expression, context.delta(1, 0)),
         expressionResultVar: resultVar(context.resultIndex + 1),
@@ -856,6 +869,7 @@ PEG.compiler.emitter = function(ast) {
     },
 
     action: function(node, context) {
+      console.log('action', node.expression);
       /*
        * In case of sequences, we splat their elements into function arguments
        * one by one. Example:
@@ -900,6 +914,7 @@ PEG.compiler.emitter = function(ast) {
     },
 
     rule_ref: function(node, context) {
+      console.log('rule_ref', node.expression);
       /*return fill("rule_ref", {
         node:      node,
         resultVar: resultVar(context.resultIndex)
@@ -907,6 +922,7 @@ PEG.compiler.emitter = function(ast) {
     },
 
     literal: function(node, context) {
+      console.log('literal', node.expression);
       /*return fill("literal", {
         node:      node,
         resultVar: resultVar(context.resultIndex)
@@ -914,10 +930,12 @@ PEG.compiler.emitter = function(ast) {
     },
 
     any: function(node, context) {
+      console.log('any', node.expression);
       /*return fill("any", { resultVar: resultVar(context.resultIndex) });*/
     },
 
     "class": function(node, context) {
+      console.log('class', node.expression);
       /*var regexp;
 
       if (node.parts.length > 0) {
