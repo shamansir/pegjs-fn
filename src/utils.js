@@ -48,11 +48,11 @@ function map(array, callback) {
  * The code needs to be in sync with the code template in the compilation
  * function for "action" nodes.
  */
-function padLeft(input, padding, length) {
+function pad(input, padding, length) {
   var result = input;
 
-  var padLength = length - input.length;
-  for (var i = 0; i < padLength; i++) {
+  var plen = length - input.length;
+  for (var i = 0; i < plen; i++) {
     result = padding + result;
   }
 
@@ -67,19 +67,10 @@ function padLeft(input, padding, length) {
  * function for "action" nodes.
  */
 function escape(ch) {
-  var charCode = ch.charCodeAt(0);
-  var escapeChar;
-  var length;
-
-  if (charCode <= 0xFF) {
-    escapeChar = 'x';
-    length = 2;
-  } else {
-    escapeChar = 'u';
-    length = 4;
-  }
-
-  return '\\' + escapeChar + padLeft(charCode.toString(16).toUpperCase(), '0', length);
+  var ccode = ch.charCodeAt(0);
+  return '\\' + ((ccode <= 0xFF) ? 'x' : 'u') +
+         pad(ccode.toString(16).toUpperCase(), '0',
+             ((ccode <= 0xFF) ? 2 : 4));
 }
 
 /*

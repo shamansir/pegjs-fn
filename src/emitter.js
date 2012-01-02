@@ -246,18 +246,18 @@ PEG.compiler.emitter = function(ast) {
             '      var rules = {};', // TODO: move rules to outer object 
             '      ',
             '      var pos = 0,', // TODO: pack failures in context
-            '          failures = { rightestAt: 0, expected: [] },',
+            '          failures = { rightest: 0, expected: [] },',
             '          stack = [],',
             '          cache = {};',
             //'      var reportFailures = 0;', // 0 = report, anything > 0 = do not report
             //'      var _chunk = {"pos":-1,"end":-1,"match":""};',            
             '      ',
-            /* This needs to be in sync with |padLeft| in utils.js. */
-            '      function padLeft(input, padding, length) {',
+            /* This needs to be in sync with |pad| in utils.js. */
+            '      function pad(input, padding, length) {',
             '        var result = input;',
             '        ',
-            '        var padLength = length - input.length;',
-            '        for (var i = 0; i < padLength; i++) {',
+            '        var plen = length - input.length;',
+            '        for (var i = 0; i < plen; i++) {',
             '          result = padding + result;',
             '        }',
             '        ',
@@ -266,19 +266,10 @@ PEG.compiler.emitter = function(ast) {
             '      ',
             /* This needs to be in sync with |escape| in utils.js. */
             '      function escape(ch) {',
-            '        var charCode = ch.charCodeAt(0);',
-            '        var escapeChar;',
-            '        var length;',
-            '        ',
-            '        if (charCode <= 0xFF) {',
-            '          escapeChar = \'x\';',
-            '          length = 2;',
-            '        } else {',
-            '          escapeChar = \'u\';',
-            '          length = 4;',
-            '        }',
-            '        ',
-            '        return \'\\\\\' + escapeChar + padLeft(charCode.toString(16).toUpperCase(), \'0\', length);',
+            '        var ccode = ch.charCodeAt(0);',
+            '        return \'\\\\\' + ((ccode <= 0xFF) ? \'x\' : \'u\') +',
+            '               pad(ccode.toString(16).toUpperCase(), \'0\',',
+            '                   ((ccode <= 0xFF) ? 2 : 4));',
             '      }',
             '      ',
             /* This needs to be in sync with |quote| in utils.js. */
@@ -306,12 +297,12 @@ PEG.compiler.emitter = function(ast) {
             '      }',
             '      ',
             '      function failed(failure) {',
-            '        if (pos < failures.rightestAt) {',
+            '        if (pos < failures.rightest) {',
             '          return;',
             '        }',
             '        ',
-            '        if (pos > failures.rightestAt) {',
-            '          failures.rightestAt = pos;',
+            '        if (pos > failures.rightest) {',
+            '          failures.rightest = pos;',
             '          failures.expected = [];',
             '        }',
             '        ',
@@ -348,7 +339,7 @@ PEG.compiler.emitter = function(ast) {
             '        }',
             '        ',
             '        var expected = buildExpected(failures.expected);',
-            '        var actualPos = Math.max(pos, failures.rightestAt);',
+            '        var actualPos = Math.max(pos, failures.rightest);',
             '        var actual = actualPos < input.length',
             '          ? quote(input.charAt(actualPos))',
             '          : "end of input";',
@@ -397,7 +388,13 @@ PEG.compiler.emitter = function(ast) {
             '        }',
             '      } else {',
             '        startRule = #{string(startRule)};',
-            '      }',            
+            '      }',
+            '      ',
+            '      for (rule in rules) {', // TODO: move this code to outer scope
+            '        rules[rule] = (function(name, rule) { return function() {',
+            '          return checkCache(name) || rule();',
+            '        }; })(rule, rules[rule]);',
+            '      }',
             '      ',
             '      var result = rules[startRule]();',
             '      ',
@@ -455,6 +452,7 @@ PEG.compiler.emitter = function(ast) {
           ],
           rule: [
             'rules.#{node.name} = function() {',
+            '  if (checkCache())',
             '  var cacheKey = "#{node.name}@" + pos;',
             '  var cachedResult = cache[cacheKey];',
             '  if (cachedResult) {',
@@ -686,8 +684,6 @@ PEG.compiler.emitter = function(ast) {
 
     rule: function(node) {
       console.log('rule', node);
-      return '"' + node.type + '"';
-      // TODO: remove resultStackDepth/posStackDepth and stuff if we will not use them
       /* var context = {
         resultIndex: 0,
         posIndex:    0,
@@ -698,15 +694,15 @@ PEG.compiler.emitter = function(ast) {
             delta:       this.delta
           };
         }
-      };
+      }; */
 
       return fill("rule", {
         node:       node,
-        resultVars: map(range(node.resultStackDepth), resultVar),
-        posVars:    map(range(node.posStackDepth), posVar),
-        code:       emit(node.expression, context),
-        resultVar:  resultVar(context.resultIndex)
-      });*/
+        //resultVars: map(range(node.resultStackDepth), resultVar),
+        //posVars:    map(range(node.posStackDepth), posVar),
+        code:       node.expression //emit(node.expression, context),
+        //resultVar:  resultVar(context.resultIndex)
+      });
     },
 
     /*
