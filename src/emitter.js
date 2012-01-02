@@ -666,6 +666,12 @@ PEG.compiler.emitter = function(ast) {
         parseFunctions.push(emit(node.rules[name]));
       }
 
+      console.log('grammar: ', fill("grammar", {
+        initializer:    initializer,
+        parseFunctions: parseFunctions,
+        startRule:      node.startRule
+      }));
+
       return fill("grammar", {
         initializer:    initializer,
         parseFunctions: parseFunctions,
@@ -680,6 +686,7 @@ PEG.compiler.emitter = function(ast) {
 
     rule: function(node) {
       console.log('rule', node);
+      return '"' + node.type + '"';
       // TODO: remove resultStackDepth/posStackDepth and stuff if we will not use them
       /* var context = {
         resultIndex: 0,
