@@ -309,6 +309,18 @@ PEG.compiler.emitter = function(ast) {
             '        failures.expected.push(failure);',
             '      }',
             '      ',
+            '      function inCache(name) {',
+            '        return cache.hasOwnProperty(name + "@" + pos);',
+            '      }',
+            '      ',
+            '      /* must be used only next to inCache check in a way like:',
+            '       * if (inCache(name)) return fromCache(name); */',
+            '      function fromCache(name) {',
+            '        var cached = cache[name + "@" + pos];',
+            '        pos = cached.next',
+            '        return cached.result;', 
+            '      }',
+            '      ',
             '      #for definition in parseFunctions',
             '        #block definition',
             '        ',
@@ -392,7 +404,7 @@ PEG.compiler.emitter = function(ast) {
             '      ',
             '      for (rule in rules) {', // TODO: move this code to outer scope
             '        rules[rule] = (function(name, rule) { return function() {',
-            '          return checkCache(name) || rule();',
+            '          return inCache(name) ? fromCache(name) : rule();',
             '        }; })(rule, rules[rule]);',
             '      }',
             '      ',
@@ -452,14 +464,7 @@ PEG.compiler.emitter = function(ast) {
           ],
           rule: [
             'rules.#{node.name} = function() {',
-            '  if (checkCache())',
-            '  var cacheKey = "#{node.name}@" + pos;',
-            '  var cachedResult = cache[cacheKey];',
-            '  if (cachedResult) {',
-            '    pos = cachedResult.nextPos;',
-            '    return cachedResult.result;',
-            '  }',
-            '  ',
+            '  ',/*
             '  #if resultVars.length > 0',
             '    var #{resultVars.join(", ")};',
             '  #end',
@@ -482,7 +487,7 @@ PEG.compiler.emitter = function(ast) {
             '    nextPos: pos,',
             '    result:  #{resultVar}',
             '  };',
-            '  return #{resultVar};',
+            '  return #{resultVar};',*/
             '}'
           ],
           choice: [
