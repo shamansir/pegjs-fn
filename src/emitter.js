@@ -314,13 +314,15 @@ PEG.compiler.emitter = function(ast) {
             '  /* must be used only next to inCache check in a way like:',
             '   * if (!inCache(name)) return toCache(name, rule()); */',
             '  function toCache(name, result) {',
-            '    cache[name+"@"+pos] = {',
+            '    var res = {',
             '      "next": pos,', // TODO: what 'next' means?
             '      "result": result',
             '    };', 
+            '    cache[name+"@"+pos] = res;',
+            '    return res;',
             '  }',            
             '  ',           
-            '  function uniqueMsg(expected) {',
+            '  function uniqueList(expected) {',
             '    expected.sort();',
             '    ',
             '    var last = null;',
@@ -345,7 +347,7 @@ PEG.compiler.emitter = function(ast) {
             '  }',
             '  ',
             '  function errorMsg() {',
-            '    var expected = uniqueMsg(failures.expected),',
+            '    var expected = uniqueList(failures.expected),',
             '        actualPos = Math.max(pos, failures.rightest),',
             '        actual = (actualPos < input.length)',
             '                 ? quote(input.charAt(actualPos))',
@@ -385,7 +387,7 @@ PEG.compiler.emitter = function(ast) {
             '    return [ line, column ];',
             '  }',
             '  ',
-            '  #if initializer !== ""',
+            '  #if initializerDef', // FIXME: initializer and in-rules variables must share the same scope 
             '    function initialize() {',
             '      #block initializer',           
             '    }',
@@ -395,7 +397,7 @@ PEG.compiler.emitter = function(ast) {
             '    #block definition',
             '    ',
             '  #end',
-            '  for (rule in rules) {', // TODO: move this code to outer scope
+            '  for (rule in rules) {', // FIXME: initializer and in-rules variables must share the same scope 
             '    rules[rule] = (function(name, rule) { return function() {',
             '      return inCache(name) ? fromCache(name) : toCache(name, rule());',
             '    }; })(rule, rules[rule]);',
@@ -415,7 +417,7 @@ PEG.compiler.emitter = function(ast) {
             '      pos = 0, stack = [], cache = {},',
             '      failures = { rightest: 0, expected: [] };',
             '      ',
-            '      #if initializer !== ""',
+            '      #if initializerDef', // FIXME: initializer and in-rules variables must share the same scope 
             '        initialize();',
             '        ',
             '      #end',            
@@ -680,21 +682,22 @@ PEG.compiler.emitter = function(ast) {
       var initializer = node.initializer !== null
         ? emit(node.initializer)
         : "";
-      var name;
-
+      
       var parseFunctions = [];
-      for (name in node.rules) {
+      for (var name in node.rules) {
         parseFunctions.push(emit(node.rules[name]));
       }
 
       console.log('grammar: ', fill("grammar", {
         initializer:    initializer,
+        initializerDef: (initializer !== ""),
         parseFunctions: parseFunctions,
         startRule:      node.startRule
       }));
 
       return fill("grammar", {
         initializer:    initializer,
+        initializerDef: (initializer !== ""),
         parseFunctions: parseFunctions,
         startRule:      node.startRule
       });
