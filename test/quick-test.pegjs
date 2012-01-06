@@ -1,6 +1,6 @@
 { console.log("initializer");
   return { foo: 11 }; }
 
-start = a* { console.log(c.foo); }
+start = a* { console.log(foo); }
 
-a = "b" / d:"c" { return c.d; }
+a = "b" / d:"c" { return d; }
