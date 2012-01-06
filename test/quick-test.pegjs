@@ -3,4 +3,4 @@
 
 start = a* { console.log(foo); }
 
-a = "b" / d:"c" { return d; }
+a = (("b" / d:"c") { return d; })

@@ -449,7 +449,7 @@ PEG.compiler.emitter = function(ast) {
             '  for (rule in rules) {',
             '    rules[rule] = (function(name, rule) { return function() {',
             '      if (inCache(name)) return fromCache(name);',
-            '      ctx_inject(ctx, deep, target);',
+            '      ctx_inject(ctx, deep, target);', // FIXME: inject only before actions
             '      return toCache(name, rule());',
             '    }; })(rule, rules[rule]);',
             '  }',
@@ -465,7 +465,8 @@ PEG.compiler.emitter = function(ast) {
             '     */',
             '    parse: function(input, startRule) {',
             //'      var reportFailures = 0;', // 0 = report, anything > 0 = do not report
-            //'      var _chunk = {"pos":-1,"end":-1,"match":""};',
+            //'      TODO: _chunk = {"pos":-1,"end":-1,"match":""};',
+            // TODO: use 'with' to give rules the context?
             '      ',       
             '      // initialize variables',
             '      pos = 0, deep = 1, cache = {}, ctx = []',
@@ -542,7 +543,7 @@ PEG.compiler.emitter = function(ast) {
           ],
           rule: [
             'rules.#{node.name} = function() {',
-            '  ',/*
+            '  #block code',/*
             '  #if resultVars.length > 0',
             '    var #{resultVars.join(", ")};',
             '  #end',
@@ -648,7 +649,13 @@ PEG.compiler.emitter = function(ast) {
             '}'
           ],
           action: [
-            '#{posVar} = pos;',
+            'check([',
+            '  #block exprCode',
+            '  , function() {', 
+            '    #{node.code}', 
+            '  }',
+            ']);'
+            /*'#{posVar} = pos;',
             '#block expressionCode',
             '_chunk.pos = #{posVar};',
             '_chunk.end = pos;',
@@ -658,7 +665,7 @@ PEG.compiler.emitter = function(ast) {
             '}',
             'if (#{resultVar} === null) {',
             '  pos = #{posVar};',
-            '}'            
+            '}' */           
           ],
           rule_ref: [
             '#{resultVar} = rules.#{node.name}();'
@@ -762,30 +769,16 @@ PEG.compiler.emitter = function(ast) {
     },
 
     initializer: function(node) {
-      console.log('initializer', node);
+      console.log('/initializer', node);
       return node.code;
     },
 
     rule: function(node) {
-      console.log('rule', node);
-      /* var context = {
-        resultIndex: 0,
-        posIndex:    0,
-        delta:       function(resultIndexDelta, posIndexDelta) {
-          return {
-            resultIndex: this.resultIndex + resultIndexDelta,
-            posIndex:    this.posIndex    + posIndexDelta,
-            delta:       this.delta
-          };
-        }
-      }; */
+      console.log('/rule', node);
 
       return fill("rule", {
         node:       node,
-        //resultVars: map(range(node.resultStackDepth), resultVar),
-        //posVars:    map(range(node.posStackDepth), posVar),
-        code:       node.expression //emit(node.expression, context),
-        //resultVar:  resultVar(context.resultIndex)
+        code:       emit(node.expression)
       });
     },
 
@@ -820,7 +813,7 @@ PEG.compiler.emitter = function(ast) {
      */
 
     choice: function(node, context) {
-      console.log('choise', node);
+      console.log('/choise', node);
       /*var code, nextAlternativesCode;
 
       for (var i = node.alternatives.length - 1; i >= 0; i--) {
@@ -837,10 +830,11 @@ PEG.compiler.emitter = function(ast) {
       }
 
       return code;*/
+      return "'<choise>'";
     },
 
     sequence: function(node, context) {
-      console.log('sequence', node);
+      console.log('/sequence', node);
       /*var elementResultVars = map(node.elements, function(element, i) {
         return resultVar(context.resultIndex + i);
       });
@@ -862,33 +856,37 @@ PEG.compiler.emitter = function(ast) {
       }
 
       return fill("sequence", { code: code, posVar: posVar(context.posIndex) }); */
+      return "'<sequence>'";
     },
 
     labeled: function(node, context) {
-      console.log('labeled', node.expression);
+      console.log('/labeled', node.expression);
       /*return emit(node.expression, context);*/
+      return "'<labeled>'";
     },
 
     simple_and: function(node, context) {
-      console.log('simple_and', node.expression);
+      console.log('/simple_and', node.expression);
       /* return fill("simple_and", {
         expressionCode: emit(node.expression, context.delta(0, 1)),
         posVar:         posVar(context.posIndex),
         resultVar:      resultVar(context.resultIndex)
       }); */
+      return "'<simple_and>'";
     },
 
     simple_not: function(node, context) {
-      console.log('simple_not', node.expression);
+      console.log('/simple_not', node.expression);
       /* return fill("simple_not", {
         expressionCode: emit(node.expression, context.delta(0, 1)),
         posVar:         posVar(context.posIndex),
         resultVar:      resultVar(context.resultIndex)
       }); */
+      return "'<simple_not>'";      
     },
 
     semantic_and: function(node, context, previousResults) {
-      console.log('sem_and', node.expression);
+      console.log('/sem_and', node.expression);
       /*var formalParams = [];
       var actualParams = [];
       if (node.previousElements !== undefined) {
@@ -906,10 +904,11 @@ PEG.compiler.emitter = function(ast) {
         formalParams: formalParams,
         actualParams: actualParams
       });*/
+      return "'<sem_and>'";
     },
 
     semantic_not: function(node, context, previousResults) {
-      console.log('sem_not', node.expression);
+      console.log('/sem_not', node.expression);
       /*var formalParams = [];
       var actualParams = [];
       if (node.previousElements !== undefined) {
@@ -927,36 +926,40 @@ PEG.compiler.emitter = function(ast) {
         formalParams: formalParams,
         actualParams: actualParams
       });*/
+      return "'<sem_not>'";
     },
 
     optional: function(node, context) {
-      console.log('optional', node.expression);
+      console.log('/optional', node.expression);
       /*return fill("optional", {
         expressionCode: emit(node.expression, context),
         resultVar:      resultVar(context.resultIndex)
       });*/
+      return "'<optional>'";
     },
 
     zero_or_more: function(node, context) {
-      console.log('zero_or_more', node.expression);
+      console.log('/zero_or_more', node.expression);
       /*return fill("zero_or_more", {
         expressionCode:      emit(node.expression, context.delta(1, 0)),
         expressionResultVar: resultVar(context.resultIndex + 1),
         resultVar:           resultVar(context.resultIndex)
       });*/
+      return "'<zero_or_more>'";
     },
 
     one_or_more: function(node, context) {
-      console.log('one_or_more', node.expression);
+      console.log('/one_or_more', node.expression);
       /*return fill("one_or_more", {
         expressionCode:      emit(node.expression, context.delta(1, 0)),
         expressionResultVar: resultVar(context.resultIndex + 1),
         resultVar:           resultVar(context.resultIndex)
       });*/
+      return "'<one_or_more>'";
     },
 
     action: function(node, context) {
-      console.log('action', node.expression);
+      console.log('/action', node.expression);
       /*
        * In case of sequences, we splat their elements into function arguments
        * one by one. Example:
@@ -965,6 +968,11 @@ PEG.compiler.emitter = function(ast) {
        *
        * This behavior is reflected in this function.
        */
+
+      return fill("action", {
+        node: node,
+        exprCode: emit(node.expression) //emit(node.expression)
+      });
 
       /*var formalParams;
       var actualParams;
@@ -1001,28 +1009,31 @@ PEG.compiler.emitter = function(ast) {
     },
 
     rule_ref: function(node, context) {
-      console.log('rule_ref', node.expression);
+      console.log('/rule_ref', node.expression);
       /*return fill("rule_ref", {
         node:      node,
         resultVar: resultVar(context.resultIndex)
       });*/
+      return "'<rule_ref>'";
     },
 
     literal: function(node, context) {
-      console.log('literal', node.expression);
+      console.log('/literal', node.expression);
       /*return fill("literal", {
         node:      node,
         resultVar: resultVar(context.resultIndex)
       });*/
+      return "'<literal>'";
     },
 
     any: function(node, context) {
-      console.log('any', node.expression);
+      console.log('/any', node.expression);
       /*return fill("any", { resultVar: resultVar(context.resultIndex) });*/
+      return "'<any>'";
     },
 
     "class": function(node, context) {
-      console.log('class', node.expression);
+      console.log('/class', node.expression);
       /*var regexp;
 
       if (node.parts.length > 0) {
@@ -1049,6 +1060,7 @@ PEG.compiler.emitter = function(ast) {
         regexp:    regexp,
         resultVar: resultVar(context.resultIndex)
       });*/
+      return "'<class>'";
     }
   });
 
