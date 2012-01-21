@@ -3,4 +3,10 @@
 
 start = a* { console.log(foo); }
 
-a = (("b" / d:"c") { return d; })
+a = w (("b" / d:"c") { return d; })
+
+w = c+
+
+c = "a" / "e" / g
+
+g = "oooo"
