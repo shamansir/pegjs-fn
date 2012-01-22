@@ -605,9 +605,9 @@ PEG.compiler.emitter = function(ast) {
           sequence: [
             'sequence(',
             '  #for expression in beforeLast',
-            '    #{expression},',
+            '    #block expression',
             '  #end',
-            '    #{last}',
+            '  #block last',
             ');'
             /*'#{posVar} = pos;',
             '#block code'*/
@@ -928,7 +928,7 @@ PEG.compiler.emitter = function(ast) {
       var elms = node.elements;
       var beforeLast = [];
       for (var i = 0; i < (elms.length - 1); i++) {
-        beforeLast.push(_transform(elms[i]));
+        beforeLast.push(_transform(elms[i]) + ',');
       };
 
       last = _transform(elms[elms.length - 1]);
