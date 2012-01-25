@@ -488,8 +488,6 @@ PEG.compiler.emitter = function(ast) {
             '     */',
             /* =============== PARSE FUNCTION =============== */
             '    parse: function(input, startRule) {',
-            //'      var reportFailures = 0;', // 0 = report, anything > 0 = do not report
-            //'      TODO: _chunk = {"pos":-1,"end":-1,"match":""};',
             // TODO: use 'with' to give rules the context?
             '      ',       
             '      // initialize variables',
@@ -514,30 +512,6 @@ PEG.compiler.emitter = function(ast) {
             '      // and execute it',
             '      var result = rules[startRule]();',
             '      ',
-            '      /*',
-            '       * The parser is now in one of the following three states:',
-            '       *',
-            '       * 1. The parser successfully parsed the whole input.',
-            '       *',
-            '       *    - |result !== null|',
-            '       *    - |pos === input.length|',
-            '       *    - |failures.expected| may or may not contain something',
-            '       *',
-            '       * 2. The parser successfully parsed only a part of the input.',
-            '       *',
-            '       *    - |result !== null|',
-            '       *    - |pos < input.length|',
-            '       *    - |failures.expected| may or may not contain something',
-            '       *',
-            '       * 3. The parser did not successfully parse any part of the input.',
-            '       *',
-            '       *   - |result === null|',
-            '       *   - |pos === 0|',
-            '       *   - |failures.expected| contains at least one failure',
-            '       *',
-            '       * All code following this comment (including called functions) must',
-            '       * handle these states.',
-            '       */',
             '      if (result === null || pos !== input.length) {',
             '        throw new this.SyntaxError(', // TODO: test syntax error
             '          errorMsg(), findErrPos()',
@@ -567,30 +541,7 @@ PEG.compiler.emitter = function(ast) {
           ],
           rule: [
             'rules.#{node.name} = function() {',
-            '  #block code',/*
-            '  #if resultVars.length > 0',
-            '    var #{resultVars.join(", ")};',
-            '  #end',
-            '  #if posVars.length > 0',
-            '    var #{posVars.join(", ")};',
-            '  #end',
-            '  ',
-            '  #if node.displayName !== null',
-            '    reportFailures++;',
-            '  #end',
             '  #block code',
-            '  #if node.displayName !== null',
-            '    reportFailures--;',
-            '    if (reportFailures === 0 && #{resultVar} === null) {',
-            '      matchFailed(#{string(node.displayName)});',
-            '    }',
-            '  #end',
-            '  ',
-            '  cache[cacheKey] = {',
-            '    nextPos: pos,',
-            '    result:  #{resultVar}',
-            '  };',
-            '  return #{resultVar};',*/
             '}'
           ],
           choice: [
@@ -609,8 +560,6 @@ PEG.compiler.emitter = function(ast) {
             '  #end',
             '  #block last',
             ');'
-            /*'#{posVar} = pos;',
-            '#block code'*/
           ],
           "sequence.elm": [
             'function() {',
@@ -620,18 +569,6 @@ PEG.compiler.emitter = function(ast) {
           "sequence.elm.rule": [
             '#{code}'
           ],
-          /*"sequence.iteration": [
-            '#block elementCode',
-            'if (#{elementResultVar} !== null) {',
-            '  #block code',
-            '} else {',
-            '  #{resultVar} = null;',
-            '  pos = #{posVar};',
-            '}'
-          ],
-          "sequence.inner": [
-            '#{resultVar} = [#{elementResultVars.join(", ")}];'
-          ],*/
           simple_and: [
             '#{posVar} = pos;',
             'reportFailures++;',
@@ -666,19 +603,11 @@ PEG.compiler.emitter = function(ast) {
             'maybe(function() {',
             '  #block expression',
             '});'
-            /*'#block expressionCode',
-            '#{resultVar} = #{resultVar} !== null ? #{resultVar} : "";'*/
           ],
           zero_or_more: [
             'any(function() {',
             '  #block expression',
             '});'
-            /* '#{resultVar} = [];',
-            '#block expressionCode',
-            'while (#{expressionResultVar} !== null) {',
-            '  #{resultVar}.push(#{expressionResultVar});',
-            '  #block expressionCode',
-            '}' */
           ],
           "zero_or_more.rule": [
             'any(#{expression});'
@@ -686,17 +615,7 @@ PEG.compiler.emitter = function(ast) {
           one_or_more: [
             'some(function() {',
             '  #block expression',
-            '});',
-            /* '#block expressionCode',
-            'if (#{expressionResultVar} !== null) {',
-            '  #{resultVar} = [];',
-            '  while (#{expressionResultVar} !== null) {',
-            '    #{resultVar}.push(#{expressionResultVar});',
-            '    #block expressionCode',
-            '  }',
-            '} else {',
-            '  #{resultVar} = null;',
-            '}' */
+            '});'
           ],
           action: [
             'action(function() {',
@@ -704,18 +623,7 @@ PEG.compiler.emitter = function(ast) {
             '  }, function() {',            
             '    #block node.code', 
             '  }',
-            ');'
-            /*'#{posVar} = pos;',
-            '#block expressionCode',
-            '_chunk.pos = #{posVar};',
-            '_chunk.end = pos;',
-            '_chunk.match = input.substring(#{posVar},pos);',            
-            'if (#{resultVar} !== null) {',
-            '  #{resultVar} = (function(#{formalParams.join(", ")}) {#{node.code}})(#{actualParams.join(", ")});',
-            '}',
-            'if (#{resultVar} === null) {',
-            '  pos = #{posVar};',
-            '}' */           
+            ');'       
           ],
           "action.rule": [
             'action(#{expression},',
@@ -844,54 +752,10 @@ PEG.compiler.emitter = function(ast) {
       });
     },
 
-    /*
-     * The contract for all code fragments generated by the following functions
-     * is as follows.
-     *
-     * The code fragment tries to match a part of the input starting with the
-     * position indicated in |pos|. That position may point past the end of the
-     * input.
-     *
-     * * If the code fragment matches the input, it advances |pos| to point to
-     *   the first chracter following the matched part of the input and sets
-     *   variable with a name computed by calling
-     *   |resultVar(context.resultIndex)| to an appropriate value. This value is
-     *   always non-|null|.
-     *
-     * * If the code fragment does not match the input, it returns with |pos|
-     *   set to the original value and it sets a variable with a name computed
-     *   by calling |resultVar(context.resultIndex)| to |null|.
-     *
-     * The code can use variables with names computed by calling
-     *
-     *   |resultVar(context.resultIndex + i)|
-     *
-     * and
-     *
-     *   |posVar(context.posIndex + i)|
-     *
-     * where |i| >= 1 to store necessary data (return values and positions). It
-     * won't use any other variables.
-     */
+    // ======= COMBINATIONS =======
 
     choice: function(node/*, context*/) {
       console.log('/choise', node);
-      /*var code, nextAlternativesCode;
-
-      for (var i = node.alternatives.length - 1; i >= 0; i--) {
-        nextAlternativesCode = i !== node.alternatives.length - 1
-          ? fill("choice.next", {
-              code:      code,
-              resultVar: resultVar(context.resultIndex)
-            })
-          : '';
-        code = fill("choice", {
-          currentAlternativeCode: emit(node.alternatives[i], context),
-          nextAlternativesCode:   nextAlternativesCode
-        });
-      }
-
-      return code;*/
 
       return "'<choise >'";
     },
@@ -899,27 +763,6 @@ PEG.compiler.emitter = function(ast) {
     sequence: function(node/*, context*/) {
       console.log('/sequence', node);
 
-      /*var elementResultVars = map(node.elements, function(element, i) {
-        return resultVar(context.resultIndex + i);
-      });
-
-      var code = fill("sequence.inner", {
-        resultVar:         resultVar(context.resultIndex),
-        elementResultVars: elementResultVars
-      });
-
-      for (var i = node.elements.length - 1; i >= 0; i--) {
-        code = fill("sequence.iteration", {
-          elementCode:      emit(node.elements[i], context.delta(i, 1),
-                                 elementResultVars.slice(0, i)),
-          elementResultVar: elementResultVars[i],
-          code:             code,
-          posVar:           posVar(context.posIndex),
-          resultVar:        resultVar(context.resultIndex)
-        });
-      }
-
-      return fill("sequence", { code: code, posVar: posVar(context.posIndex) }); */
       var _transform = function(expr) {
         return fill((isRule(expr) ? "sequence.elm.rule" : "sequence.elm"),
                     { code: emit(expr) });
@@ -943,90 +786,36 @@ PEG.compiler.emitter = function(ast) {
 
     labeled: function(node/*, context*/) {
       console.log('/labeled', node.expression);
-      /*return emit(node.expression, context);*/
       return "'<labeled>'";
     },
 
     simple_and: function(node/*, context*/) {
       console.log('/simple_and', node.expression);
-      /* return fill("simple_and", {
-        expressionCode: emit(node.expression, context.delta(0, 1)),
-        posVar:         posVar(context.posIndex),
-        resultVar:      resultVar(context.resultIndex)
-      }); */
       return "'<simple_and>'";
     },
 
     simple_not: function(node/*, context*/) {
       console.log('/simple_not', node.expression);
-      /* return fill("simple_not", {
-        expressionCode: emit(node.expression, context.delta(0, 1)),
-        posVar:         posVar(context.posIndex),
-        resultVar:      resultVar(context.resultIndex)
-      }); */
       return "'<simple_not>'";      
     },
 
     semantic_and: function(node/*, context, previousResults*/) {
       console.log('/sem_and', node.expression);
-      /*var formalParams = [];
-      var actualParams = [];
-      if (node.previousElements !== undefined) {
-        for (var i = 0; i < node.previousElements.length; i++) {
-          var element = node.previousElements[i];
-          if (element.type === "labeled") {
-            formalParams.push(element.label);
-            actualParams.push(previousResults[i]);
-          }
-        }
-      }  
-      return fill("semantic_and", {
-        node:         node,
-        resultVar:    resultVar(context.resultIndex),
-        formalParams: formalParams,
-        actualParams: actualParams
-      });*/
       return "'<sem_and>'";
     },
 
     semantic_not: function(node/*, context, previousResults*/) {
       console.log('/sem_not', node.expression);
-      /*var formalParams = [];
-      var actualParams = [];
-      if (node.previousElements !== undefined) {
-        for (var i = 0; i < node.previousElements.length; i++) {
-          var element = node.previousElements[i];
-          if (element.type === "labeled") {
-            formalParams.push(element.label);
-            actualParams.push(previousResults[i]);
-          }
-        }
-      }
-      return fill("semantic_not", {
-        node:         node,
-        resultVar:    resultVar(context.resultIndex),
-        formalParams: formalParams,
-        actualParams: actualParams
-      });*/
       return "'<sem_not>'";
     },
 
     optional: function(node/*, context*/) {
       console.log('/optional', node.expression);
-      /*return fill("optional", {
-        expressionCode: emit(node.expression, context),
-        resultVar:      resultVar(context.resultIndex)
-      });*/
       return "'<optional>'";
     },
 
     zero_or_more: function(node/*, context*/) {
       console.log('/zero_or_more', node.expression);
-      /*return fill("zero_or_more", {
-        expressionCode:      emit(node.expression, context.delta(1, 0)),
-        expressionResultVar: resultVar(context.resultIndex + 1),
-        resultVar:           resultVar(context.resultIndex)
-      });*/
       return fill((isRule(node.expression) ? "zero_or_more.rule" 
                                            : "zero_or_more"),
                   { expression: emit(node.expression) });
@@ -1034,24 +823,11 @@ PEG.compiler.emitter = function(ast) {
 
     one_or_more: function(node/*, context*/) {
       console.log('/one_or_more', node.expression);
-      /*return fill("one_or_more", {
-        expressionCode:      emit(node.expression, context.delta(1, 0)),
-        expressionResultVar: resultVar(context.resultIndex + 1),
-        resultVar:           resultVar(context.resultIndex)
-      });*/
       return "'<one_or_more>'";
     },
 
     action: function(node/*, context*/) {
       console.log('/action', node.expression);
-      /*
-       * In case of sequences, we splat their elements into function arguments
-       * one by one. Example:
-       *
-       *   start: a:"a" b:"b" c:"c" { alert(arguments.length) }  // => 3
-       *
-       * This behavior is reflected in this function.
-       */
       
       return fill((isRule(node.expression) ? "action.rule" 
                                            : "action"), {
@@ -1059,38 +835,6 @@ PEG.compiler.emitter = function(ast) {
         expression: emit(node.expression)
       });
 
-      /*var formalParams;
-      var actualParams;
-
-      if (node.expression.type === "sequence") {
-        formalParams = [];
-        actualParams = [];
-
-        each(node.expression.elements, function(element, i) {
-          if (element.type === "labeled") {
-            formalParams.push(element.label);
-            actualParams.push(resultVar(context.resultIndex) + '[' + i + ']');
-          }
-        });
-      } else if (node.expression.type === "labeled") {
-        formalParams = [node.expression.label];
-        actualParams = [resultVar(context.resultIndex)];
-      } else {
-        formalParams = [];
-        actualParams = [];
-      }
-
-      formalParams.push("_chunk");
-      actualParams.push("_chunk");
-
-      return fill("action", {
-        node:           node,
-        expressionCode: emit(node.expression, context.delta(0, 1)),
-        formalParams:   formalParams,
-        actualParams:   actualParams,
-        posVar:         posVar(context.posIndex),
-        resultVar:      resultVar(context.resultIndex)
-      });*/
     },
 
     rule_ref: function(node/*, context*/) {
@@ -1100,47 +844,16 @@ PEG.compiler.emitter = function(ast) {
 
     literal: function(node/*, context*/) {
       console.log('/literal', node.expression);
-      /*return fill("literal", {
-        node:      node,
-        resultVar: resultVar(context.resultIndex)
-      });*/
       return "'<literal>'";
     },
 
     any: function(node/*, context*/) {
       console.log('/any', node.expression);
-      /*return fill("any", { resultVar: resultVar(context.resultIndex) });*/
       return "'<any>'";
     },
 
     "class": function(node/*, context*/) {
       console.log('/class', node.expression);
-      /*var regexp;
-
-      if (node.parts.length > 0) {
-        regexp = '/^['
-          + (node.inverted ? '^' : '')
-          + map(node.parts, function(part) {
-              return part instanceof Array
-                ? quoteForRegexpClass(part[0])
-                  + '-'
-                  + quoteForRegexpClass(part[1])
-                : quoteForRegexpClass(part);
-            }).join('')
-          + ']/' + (node.ignoreCase ? 'i' : '');
-      } else {
-        */ /*
-         * Stupid IE considers regexps /[]/ and /[^]/ syntactically invalid, so
-         * we translate them into euqivalents it can handle.
-         */ /*
-        regexp = node.inverted ? '/^[\\S\\s]/' : '/^(?!)/';
-      }
-
-      return fill("class", {
-        node:      node,
-        regexp:    regexp,
-        resultVar: resultVar(context.resultIndex)
-      });*/
       return "'<class>'";
     }
   });
