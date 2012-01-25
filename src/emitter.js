@@ -928,10 +928,11 @@ PEG.compiler.emitter = function(ast) {
       var elms = node.elements;
       var beforeLast = [];
       for (var i = 0; i < (elms.length - 1); i++) {
-        beforeLast.push(_transform(elms[i]) + ',');
+        beforeLast.push(_transform(elms[i]) + ','); // FIXME: may be appending
+                                                    // comma here is not ok
       };
 
-      last = _transform(elms[elms.length - 1]);
+      var last = _transform(elms[elms.length - 1]);
 
       console.log('::::::', fill("sequence", { beforeLast: beforeLast, 
                                 last: last }));
