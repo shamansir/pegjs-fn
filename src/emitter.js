@@ -545,13 +545,20 @@ PEG.compiler.emitter = function(ast) {
             '}'
           ],
           choice: [
-            '#block currentAlternativeCode',
-            '#block nextAlternativesCode'
+            'choice(',
+            '  #for expression in beforeLast',
+            '    #block expression',
+            '  #end',
+            '  #block last',
+            ');'
           ],
-          "choice.next": [
-            'if (#{resultVar} === null) {',
+          "choice.elm": [
+            'function() {',
             '  #block code',
             '}'
+          ],
+          "choice.elm.rule": [
+            '#{code}'
           ],
           sequence: [
             'sequence(',
@@ -617,6 +624,9 @@ PEG.compiler.emitter = function(ast) {
             '  #block expression',
             '});'
           ],
+          "one_or_more.rule": [
+            'some(#{expression});'
+          ],
           action: [
             'action(function() {',
             '    #block expression',
@@ -637,35 +647,10 @@ PEG.compiler.emitter = function(ast) {
             'rules.#{node.name}'
           ],
           literal: [
-            '#if node.value.length === 0',
-            '  #{resultVar} = "";',
+            '#if !node.ignoreCase',
+            '  match("#{node.value}");',
             '#else',
-            '  #if !node.ignoreCase',
-            '    #if node.value.length === 1',
-            '      if (input.charCodeAt(pos) === #{node.value.charCodeAt(0)}) {',
-            '    #else',
-            '      if (input.substr(pos, #{node.value.length}) === #{string(node.value)}) {',
-            '    #end',
-            '      #{resultVar} = #{string(node.value)};',            
-            '  #else',
-            /*
-             * One-char literals are not optimized when case-insensitive
-             * matching is enabled. This is because there is no simple way to
-             * lowercase a character code that works for character outside ASCII
-             * letters. Moreover, |toLowerCase| can change string length,
-             * meaning the result of lowercasing a character can be more
-             * characters.
-             */
-            '    if (input.substr(pos, #{node.value.length}).toLowerCase() === #{string(node.value.toLowerCase())}) {',
-            '    #{resultVar} = input.substr(pos, #{node.value.length});',            
-            '  #end',
-            '    pos += #{node.value.length};',
-            '  } else {',
-            '    #{resultVar} = null;',
-            '    if (reportFailures === 0) {',
-            '      matchFailed(#{string(string(node.value))});',
-            '    }',
-            '  }',
+            '  match("#{node.value}", "i");',
             '#end'
           ],
           any: [
@@ -754,14 +739,27 @@ PEG.compiler.emitter = function(ast) {
 
     // ======= COMBINATIONS =======
 
-    choice: function(node/*, context*/) {
-      console.log('/choise', node);
+    choice: function(node) {
 
-      return "'<choise >'";
+      var _transform = function(expr) {
+        return fill((isRule(expr) ? "choice.elm.rule" : "choice.elm"),
+                    { code: emit(expr) });
+      }; 
+
+      var elms = node.alternatives;
+      var beforeLast = [];
+      for (var i = 0; i < (elms.length - 1); i++) {
+        beforeLast.push(_transform(elms[i]) + ','); // FIXME: may be appending
+                                                    // comma here is not ok
+      };
+
+      var last = _transform(elms[elms.length - 1]);
+
+      return fill("choice", { beforeLast: beforeLast, 
+                                last: last });
     },
 
-    sequence: function(node/*, context*/) {
-      console.log('/sequence', node);
+    sequence: function(node) {
 
       var _transform = function(expr) {
         return fill((isRule(expr) ? "sequence.elm.rule" : "sequence.elm"),
@@ -777,82 +775,74 @@ PEG.compiler.emitter = function(ast) {
 
       var last = _transform(elms[elms.length - 1]);
 
-      console.log('::::::', fill("sequence", { beforeLast: beforeLast, 
-                                last: last }));
-
       return fill("sequence", { beforeLast: beforeLast, 
                                 last: last });
     },
 
-    labeled: function(node/*, context*/) {
+    labeled: function(node) {
       console.log('/labeled', node.expression);
       return "'<labeled>'";
     },
 
-    simple_and: function(node/*, context*/) {
+    simple_and: function(node) {
       console.log('/simple_and', node.expression);
       return "'<simple_and>'";
     },
 
-    simple_not: function(node/*, context*/) {
+    simple_not: function(node) {
       console.log('/simple_not', node.expression);
       return "'<simple_not>'";      
     },
 
-    semantic_and: function(node/*, context, previousResults*/) {
+    semantic_and: function(node) {
       console.log('/sem_and', node.expression);
       return "'<sem_and>'";
     },
 
-    semantic_not: function(node/*, context, previousResults*/) {
+    semantic_not: function(node) {
       console.log('/sem_not', node.expression);
       return "'<sem_not>'";
     },
 
-    optional: function(node/*, context*/) {
+    optional: function(node) {
       console.log('/optional', node.expression);
       return "'<optional>'";
     },
 
-    zero_or_more: function(node/*, context*/) {
-      console.log('/zero_or_more', node.expression);
+    zero_or_more: function(node) {
       return fill((isRule(node.expression) ? "zero_or_more.rule" 
                                            : "zero_or_more"),
                   { expression: emit(node.expression) });
     },
 
-    one_or_more: function(node/*, context*/) {
-      console.log('/one_or_more', node.expression);
-      return "'<one_or_more>'";
+    one_or_more: function(node) {
+      return fill((isRule(node.expression) ? "one_or_more.rule" 
+                                           : "one_or_more"),
+                  { expression: emit(node.expression) });
     },
 
-    action: function(node/*, context*/) {
-      console.log('/action', node.expression);
-      
+    action: function(node) {
       return fill((isRule(node.expression) ? "action.rule" 
                                            : "action"), {
         node: node,
         expression: emit(node.expression)
       });
-
     },
 
-    rule_ref: function(node/*, context*/) {
-      console.log('/rule_ref', node.name);
+    rule_ref: function(node) {
       return fill("rule_ref", { node: node });
     },
 
-    literal: function(node/*, context*/) {
-      console.log('/literal', node.expression);
-      return "'<literal>'";
+    literal: function(node) {
+      return fill("literal", { node: node });
     },
 
-    any: function(node/*, context*/) {
+    any: function(node) {
       console.log('/any', node.expression);
       return "'<any>'";
     },
 
-    "class": function(node/*, context*/) {
+    "class": function(node) {
       console.log('/class', node.expression);
       return "'<class>'";
     }
