@@ -550,15 +550,7 @@ PEG.compiler.emitter = function(ast) {
             '    #block expression',
             '  #end',
             '  #block last',
-            ');'
-          ],
-          "choice.elm": [
-            'function() {',
-            '  #block code',
-            '}'
-          ],
-          "choice.elm.rule": [
-            '#{code}'
+            ')'
           ],
           sequence: [
             'sequence(',
@@ -566,15 +558,7 @@ PEG.compiler.emitter = function(ast) {
             '    #block expression',
             '  #end',
             '  #block last',
-            ');'
-          ],
-          "sequence.elm": [
-            'function() {',
-            '  #block code',
-            '}'
-          ],
-          "sequence.elm.rule": [
-            '#{code}'
+            ')'
           ],
           simple_and: [
             '#{posVar} = pos;',
@@ -609,48 +593,32 @@ PEG.compiler.emitter = function(ast) {
           optional: [
             'maybe(function() {',
             '  #block expression',
-            '});'
+            '})'
           ],
           zero_or_more: [
-            'any(function() {',
-            '  #block expression',
-            '});'
-          ],
-          "zero_or_more.rule": [
-            'any(#{expression});'
+            'any(#{expression})'
           ],
           one_or_more: [
             'some(function() {',
             '  #block expression',
-            '});'
-          ],
-          "one_or_more.rule": [
-            'some(#{expression});'
+            '})'
           ],
           action: [
-            'action(function() {',
-            '    #block expression',
-            '  }, function() {',            
+            'action(',
+            '  #block expression',
+            ', function() {',            
             '    #block node.code', 
             '  }',
-            ');'       
-          ],
-          "action.rule": [
-            'action(#{expression},',
-            '  function() {',            
-            '    #block node.code', 
-            '  }',
-            ');'          
+            ')'       
           ],
           rule_ref: [
-            //'rule(rules.#{node.name});'
-            'rules.#{node.name}'
+            'r(rules.#{node.name})'
           ],
           literal: [
             '#if !node.ignoreCase',
-            '  match("#{node.value}");',
+            '  match("#{node.value}")',
             '#else',
-            '  match("#{node.value}", "i");',
+            '  match("#{node.value}", "i")',
             '#end'
           ],
           any: [
@@ -741,39 +709,29 @@ PEG.compiler.emitter = function(ast) {
 
     choice: function(node) {
 
-      var _transform = function(expr) {
-        return fill((isRule(expr) ? "choice.elm.rule" : "choice.elm"),
-                    { code: emit(expr) });
-      }; 
-
       var elms = node.alternatives;
       var beforeLast = [];
       for (var i = 0; i < (elms.length - 1); i++) {
-        beforeLast.push(_transform(elms[i]) + ','); // FIXME: may be appending
-                                                    // comma here is not ok
+        beforeLast.push(emit(elms[i]) + ','); // FIXME: may be appending
+                                              // comma here is not ok
       };
 
-      var last = _transform(elms[elms.length - 1]);
+      var last = emit(elms[elms.length - 1]);
 
       return fill("choice", { beforeLast: beforeLast, 
-                                last: last });
+                              last: last });
     },
 
     sequence: function(node) {
 
-      var _transform = function(expr) {
-        return fill((isRule(expr) ? "sequence.elm.rule" : "sequence.elm"),
-                    { code: emit(expr) });
-      }; 
-
       var elms = node.elements;
       var beforeLast = [];
       for (var i = 0; i < (elms.length - 1); i++) {
-        beforeLast.push(_transform(elms[i]) + ','); // FIXME: may be appending
-                                                    // comma here is not ok
+        beforeLast.push(emit(elms[i]) + ','); // FIXME: may be appending
+                                              // comma here is not ok
       };
 
-      var last = _transform(elms[elms.length - 1]);
+      var last = emit(elms[elms.length - 1]);
 
       return fill("sequence", { beforeLast: beforeLast, 
                                 last: last });
@@ -810,20 +768,17 @@ PEG.compiler.emitter = function(ast) {
     },
 
     zero_or_more: function(node) {
-      return fill((isRule(node.expression) ? "zero_or_more.rule" 
-                                           : "zero_or_more"),
+      return fill("zero_or_more",
                   { expression: emit(node.expression) });
     },
 
     one_or_more: function(node) {
-      return fill((isRule(node.expression) ? "one_or_more.rule" 
-                                           : "one_or_more"),
+      return fill("one_or_more",
                   { expression: emit(node.expression) });
     },
 
     action: function(node) {
-      return fill((isRule(node.expression) ? "action.rule" 
-                                           : "action"), {
+      return fill("action", {
         node: node,
         expression: emit(node.expression)
       });
