@@ -11,4 +11,12 @@ c = "a" / "e" / g
 
 g = "oooo"
 
-m = "a"
+m = "a" n
+
+n = d:(b+ e f { return "aa"; })
+
+b = "wee"
+
+e = "meeh"
+
+f = "foo"

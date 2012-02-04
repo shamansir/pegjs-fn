@@ -562,6 +562,11 @@ PEG.compiler.emitter = function(ast) {
             '  #block last',
             ')'
           ],
+          labeled: [
+            'label("#{node.label}",',
+            '  #block expression',
+            ')'
+          ],
           simple_and: [
             '#{posVar} = pos;',
             'reportFailures++;',
@@ -739,8 +744,10 @@ PEG.compiler.emitter = function(ast) {
     },
 
     labeled: function(node) {
-      console.log('/labeled', node.expression);
-      return "'<labeled>'";
+      console.log('/labeled', fill("labeled", { node: node,
+                                                expression: emit(node.expression) }));
+      return fill("labeled", { node: node,
+                               expression: emit(node.expression) });
     },
 
     simple_and: function(node) {
