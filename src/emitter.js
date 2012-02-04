@@ -342,6 +342,8 @@ PEG.compiler.emitter = function(ast) {
             '      target = this,',
             '      _g = this;',
             '  ',
+            '  var IGNCS = 1; // ignore-case',
+            '  ',
             /* =============== FAILURES =============== */
             '  /* FAILURES */',
             '  ',              
@@ -599,14 +601,12 @@ PEG.compiler.emitter = function(ast) {
             'any(#{expression})'
           ],
           one_or_more: [
-            'some(function() {',
-            '  #block expression',
-            '})'
+            'some(#{expression})'
           ],
           action: [
             'action(',
             '  #block expression',
-            ', function() {',            
+            '  function() {',            
             '    #block node.code', 
             '  }',
             ')'       
@@ -618,7 +618,7 @@ PEG.compiler.emitter = function(ast) {
             '#if !node.ignoreCase',
             '  match("#{node.value}")',
             '#else',
-            '  match("#{node.value}", "i")',
+            '  match("#{node.value}", IGNCS)',
             '#end'
           ],
           any: [
@@ -701,7 +701,8 @@ PEG.compiler.emitter = function(ast) {
 
       return fill("rule", {
         node:       node,
-        code:       emit(node.expression)
+        code:       emit(node.expression) + ';' // FIXME: may be appending
+                                                // semicolon here is not ok
       });
     },
 
@@ -780,7 +781,8 @@ PEG.compiler.emitter = function(ast) {
     action: function(node) {
       return fill("action", {
         node: node,
-        expression: emit(node.expression)
+        expression: emit(node.expression) + ',' // FIXME: may be appending
+                                                // comma here is not ok
       });
     },
 
