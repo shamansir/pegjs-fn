@@ -3,20 +3,24 @@
 
 start = a* { console.log(foo); }
 
-a = w m+ (("b" / d:"c") { return d; })
+a = w m+ (("b" / d:"c") { return d; })*
 
 w = (c { console.log('test'); })+
 
 c = "a" / "e" / g
 
-g = "oooo"
+g = "oooo"i
 
-m = "a" n
+m = 'a' n?
 
 n = d:(b+ e f { return "aa"; })
 
 b = "wee"
 
-e = "meeh"
+e = "meeh" one_char f:!one_char
 
-f = "foo"
+f "foo" = "foo" / &two_strange_chars
+
+one_char = !{ console.log("not predicate"); return false; } .
+
+two_strange_chars "tsc" =  &{ console.log("predicate"); return true; } [a-n]i [^A-Z]

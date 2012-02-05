@@ -332,7 +332,8 @@ PEG.compiler.emitter = function(ast) {
             /* =============== VARIABLES =============== */
             '  /* VARIABLES */',            
             '  ',
-            '  var rules = {};', // FIXME: give "_" prefix for all inner names
+            '  var rules = {},', // FIXME: give "_" prefix for all inner names?
+            '      names = {};',
             '  ',
             '  var pos, // 0',
             '      failures, // {}',
@@ -341,8 +342,6 @@ PEG.compiler.emitter = function(ast) {
             '      ctx, // []',
             '      target = this,',
             '      _g = this;',
-            '  ',
-            '  var IGNCS = 1; // ignore-case',
             '  ',
             /* =============== FAILURES =============== */
             '  /* FAILURES */',
@@ -469,6 +468,7 @@ PEG.compiler.emitter = function(ast) {
             '  #end',
             /* =============== RULES WRAPPER =============== */
             '  /* RULES WRAPPER */',
+            // TODO: add only those 'any/some/literal...'-function that factually used
             '  ',            
             '  for (rule in rules) {',
             '    rules[rule] = (function(name, rule) { return function() {',
@@ -544,7 +544,10 @@ PEG.compiler.emitter = function(ast) {
           rule: [
             'rules.#{node.name} = function() {',
             '  #block code',
-            '}'
+            '}', // FIXME: displayName!
+            '#if node.displayName',
+            '  names.#{node.name}=#{string(node.displayName)};',
+            '#end'
           ],
           choice: [
             'choice(',
@@ -563,50 +566,45 @@ PEG.compiler.emitter = function(ast) {
             ')'
           ],
           labeled: [
-            'label("#{node.label}",',
+            'label(#{string(node.label)},',
             '  #block expression',
             ')'
           ],
+          // TODO: compose all similar templates into one?
           simple_and: [
-            '#{posVar} = pos;',
-            'reportFailures++;',
-            '#block expressionCode',
-            'reportFailures--;',
-            'if (#{resultVar} !== null) {',
-            '  #{resultVar} = "";',
-            '  pos = #{posVar};',
-            '} else {',
-            '  #{resultVar} = null;',
-            '}'
+            'and(',
+            '  #block expression',
+            ')'
           ],
           simple_not: [
-            '#{posVar} = pos;',
-            'reportFailures++;',
-            '#block expressionCode',
-            'reportFailures--;',
-            'if (#{resultVar} === null) {',
-            '  #{resultVar} = "";',
-            '} else {',
-            '  #{resultVar} = null;',
-            '  pos = #{posVar};',
-            '}'
+            'not(',
+            '  #block expression',
+            ')'
           ],
           semantic_and: [
-            '#{resultVar} = (function(#{formalParams.join(", ")}) {#{node.code}})(#{actualParams.join(", ")}) ? "" : null;'
-          ],
-          semantic_not: [
-            '#{resultVar} = (function(#{formalParams.join(", ")}) {#{node.code}})(#{actualParams.join(", ")}) ? null : "";'
-          ],
-          optional: [
-            'maybe(function() {',
-            '  #block expression',
+            'pre(function() {',
+            '  #block code',  
             '})'
           ],
+          semantic_not: [
+            'xpre(function() {',
+            '  #block code',  
+            '})'
+          ],
+          optional: [
+            'maybe(',
+            '  #block expression',
+            ')'
+          ],
           zero_or_more: [
-            'any(#{expression})'
+            'any(',
+            '  #block expression',
+            ')'
           ],
           one_or_more: [
-            'some(#{expression})'
+            'some(',
+            '  #block expression',
+            ')'
           ],
           action: [
             'action(',
@@ -617,36 +615,17 @@ PEG.compiler.emitter = function(ast) {
             ')'       
           ],
           rule_ref: [
-            'r(rules.#{node.name})'
+            'b(rules.#{node.name})'
           ],
           literal: [
             '#if !node.ignoreCase',
-            '  match("#{node.value}")',
+            '  match(#{string(node.value)})',
             '#else',
-            '  match("#{node.value}", IGNCS)',
+            '  imatch(/#{node.value}/i)',
             '#end'
           ],
-          any: [
-            'if (input.length > pos) {',
-            '  #{resultVar} = input.charAt(pos);',
-            '  pos++;',
-            '} else {',
-            '  #{resultVar} = null;',
-            '  if (reportFailures === 0) {',
-            '    matchFailed("any character");',
-            '  }',
-            '}'
-          ],
           "class": [
-            'if (#{regexp}.test(input.charAt(pos))) {',
-            '  #{resultVar} = input.charAt(pos);',
-            '  pos++;',
-            '} else {',
-            '  #{resultVar} = null;',
-            '  if (reportFailures === 0) {',
-            '    matchFailed(#{string(node.rawText)});',
-            '  }',
-            '}'
+            're(#{regexp}, #{string(rawText)})'
           ]
         };
 
@@ -714,7 +693,6 @@ PEG.compiler.emitter = function(ast) {
     // ======= COMBINATIONS =======
 
     choice: function(node) {
-
       var elms = node.alternatives;
       var beforeLast = [];
       for (var i = 0; i < (elms.length - 1); i++) {
@@ -729,7 +707,6 @@ PEG.compiler.emitter = function(ast) {
     },
 
     sequence: function(node) {
-
       var elms = node.elements;
       var beforeLast = [];
       for (var i = 0; i < (elms.length - 1); i++) {
@@ -744,35 +721,31 @@ PEG.compiler.emitter = function(ast) {
     },
 
     labeled: function(node) {
-      console.log('/labeled', fill("labeled", { node: node,
-                                                expression: emit(node.expression) }));
       return fill("labeled", { node: node,
                                expression: emit(node.expression) });
     },
 
     simple_and: function(node) {
-      console.log('/simple_and', node.expression);
-      return "'<simple_and>'";
+      return fill("simple_and",
+                  { expression: emit(node.expression) });
     },
 
     simple_not: function(node) {
-      console.log('/simple_not', node.expression);
-      return "'<simple_not>'";      
+      return fill("simple_not",
+                  { expression: emit(node.expression) }); 
     },
 
     semantic_and: function(node) {
-      console.log('/sem_and', node.expression);
-      return "'<sem_and>'";
+      return fill("semantic_and", { code: node.code });
     },
 
     semantic_not: function(node) {
-      console.log('/sem_not', node.expression);
-      return "'<sem_not>'";
+      return fill("semantic_not", { code: node.code });
     },
 
     optional: function(node) {
-      console.log('/optional', node.expression);
-      return "'<optional>'";
+      return fill("optional",
+                  { expression: emit(node.expression) });
     },
 
     zero_or_more: function(node) {
@@ -802,14 +775,35 @@ PEG.compiler.emitter = function(ast) {
     },
 
     any: function(node) {
-      console.log('/any', node.expression);
-      return "'<any>'";
+      return "char()"; // TODO: make template?
     },
 
     "class": function(node) {
-      console.log('/class', node.expression);
-      return "'<class>'";
+      var regexp;
+
+      if (node.parts.length > 0) {
+        regexp = '/^['
+          + (node.inverted ? '^' : '')
+          + map(node.parts, function(part) {
+              return part instanceof Array
+                ? quoteForRegexpClass(part[0])
+                  + '-'
+                  + quoteForRegexpClass(part[1])
+                : quoteForRegexpClass(part);
+            }).join('')
+          + ']/' + (node.ignoreCase ? 'i' : '');
+      } else {
+        /*
+         * Stupid IE considers regexps /[]/ and /[^]/ syntactically invalid, so
+         * we translate them into euqivalents it can handle.
+         */
+        regexp = node.inverted ? '/^[\\S\\s]/' : '/^(?!)/';
+      }
+
+      return fill("class", { rawText: node.rawText, 
+                             regexp: regexp });
     }
+
   });
 
   return emit(ast);
