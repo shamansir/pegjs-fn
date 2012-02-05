@@ -472,14 +472,17 @@ PEG.compiler.emitter = function(ast) {
             '  ',            
             '  for (rule in rules) {',
             '    rules[rule] = (function(name, rule) { return function() {',
-            '      if (inCache(name)) return fromCache(name);',
-            '      ctx_inject(ctx, deep, target);', // FIXME: inject only before actions
-            '      return toCache(name, rule());',
+            '      //if (inCache(name)) return fromCache(name);',
+            '      //ctx_inject(ctx, deep, target);', // FIXME: inject only before actions
+            '      //return toCache(name, rule());',
+            '      rule();'
             '    }; })(rule, rules[rule]);',
             '  }',
             '  ',
             /* =============== RESULT OBJECT =============== */
-            '  /* RESULT OBJECT + PARSE FUNCTION */',            
+            '  /* RESULT OBJECT + PARSE FUNCTION */',
+            '  ',
+            '  var g = this;',            
             '  ',
             '  var result = {',
             '    /*',
@@ -494,11 +497,13 @@ PEG.compiler.emitter = function(ast) {
             '      ',       
             '      // initialize variables',
             '      pos = 0, deep = 1, cache = {}, ctx = []',
-            '      failures = { rightest: 0, expected: [] };',
+            '      failures = { rightest: 0, expected: [] },',
+            '      g.input = input;'
             '      ',
             '      // load object returned from initializer into zero-level of context',
             '      #if initializerDef',
-            '        ctx_load(ctx, 0, initialize());',
+            '        //ctx_load(ctx, 0, initialize());',
+            '        initialize();',
             '        ',
             '      #end', // TODO: allow to push vars into smth like 'i.', 'r.' variables,
                           //       not only global context  

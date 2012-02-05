@@ -21,6 +21,6 @@ e = "meeh" one_char f:!one_char
 
 f "foo" = "foo" / &two_strange_chars
 
-one_char = !{ console.log("not predicate"); return false; } .
+one_char = !{ console.log("not predicate"); console.log(foo); return false; } .
 
 two_strange_chars "tsc" =  &{ console.log("predicate"); return true; } [a-n]i [^A-Z]

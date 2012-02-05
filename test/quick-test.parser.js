@@ -193,6 +193,69 @@ module.exports = (function(){
     cache[name+"@"+pos] = res;
     return res;
   }
+
+  /* PEFORMERS */
+
+  function b(rule) { // means 'bind'
+    console.log('rule-bind');
+  }
+
+  function _bind(performer) {
+    
+  }
+
+  function sequence() {
+    console.log('sequence');
+  }
+  // TODO: sequence = _bind(sequence);
+
+  function any() {
+    console.log('any');
+  }
+
+  function some() {
+    console.log('some');
+  }
+
+  function action(f, code) {
+    console.log('action'); 
+  }
+
+  function choice() {
+    console.log('choice'); 
+  }
+
+  function match(str) {
+    console.log('match', str);  
+  }
+
+  function imatch(re) {
+    console.log('imatch', re);  
+  }
+
+  function label(lbl, code) {
+    console.log('label', lbl);
+  }
+
+  function maybe() {
+    console.log('maybe'); 
+  }
+
+  function not() {
+    console.log('not'); 
+  }
+
+  function and() {
+    console.log('and'); 
+  }
+
+  function pre() {
+    console.log('pre'); 
+  }
+
+  function xpre() {
+    console.log('xpre'); 
+  }
   
   /* INITIALIZER */
   
@@ -335,12 +398,17 @@ module.exports = (function(){
   
   for (rule in rules) {
     rules[rule] = (function(name, rule) { return function() {
-      if (inCache(name)) return fromCache(name);
+      /*if (inCache(name)) return fromCache(name);
       ctx_inject(ctx, deep, target);
-      return toCache(name, rule());
+      return toCache(name, rule());*/
+      console.log('in','rule',name);
+      rule();
+      console.log('out','rule',name);
     }; })(rule, rules[rule]);
   }
   
+  var g = this; // means "global"
+
   /* RESULT OBJECT + PARSE FUNCTION */
   
   var result = {
@@ -354,10 +422,12 @@ module.exports = (function(){
       
       // initialize variables
       pos = 0, deep = 1, cache = {}, ctx = []
-      failures = { rightest: 0, expected: [] };
+      failures = { rightest: 0, expected: [] },
+      g.input = input;
       
       // load object returned from initializer into zero-level of context
-      ctx_load(ctx, 0, initialize());
+      //ctx_load(ctx, 0, initialize());
+      initialize();
       
       // find start rule
       if (startRule !== undefined) {
@@ -386,11 +456,11 @@ module.exports = (function(){
   
   /* Thrown when a parser encounters a syntax error. */
   
-  result.SyntaxError = function(message, errorPos) {
+  result.SyntaxError = function(message, errPos) {
     this.name = "SyntaxError";
     this.message = message;
-    this.line = errorPos[0];
-    this.column = errorPos[1];
+    this.line = errPos[0];
+    this.column = errPos[1];
   };
   
   result.SyntaxError.prototype = Error.prototype;
