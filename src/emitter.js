@@ -660,13 +660,6 @@ PEG.compiler.emitter = function(ast) {
         parseFunctions.push(emit(node.rules[name]));
       }
 
-      console.log('grammar: ', fill("grammar", {
-        initializer:    initializer,
-        initializerDef: (initializer !== ""),
-        parseFunctions: parseFunctions,
-        startRule:      node.startRule
-      }));
-
       return fill("grammar", {
         initializer:    initializer,
         initializerDef: (initializer !== ""),
@@ -676,13 +669,10 @@ PEG.compiler.emitter = function(ast) {
     },
 
     initializer: function(node) {
-      console.log('/initializer', node);
       return node.code;
     },
 
     rule: function(node) {
-      console.log('/rule', node);
-
       return fill("rule", {
         node:       node,
         code:       emit(node.expression) + ';' // FIXME: may be appending

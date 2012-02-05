@@ -187,6 +187,8 @@ PEG.compiler.passes = {
     }
   },
 
+  // TODO: calculate every node type occurences count
+
   /*
    * Adds |resultStackDepth| and |posStackDepth| properties to each AST node.
    * These properties specify how many positions on the result or position stack
