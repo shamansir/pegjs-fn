@@ -196,13 +196,14 @@ module.exports = (function(){
 
   /* PEFORMERS */
 
-  function b(rule) { // means 'bind'
+  function ref(rule) { // means 'bind'
     console.log('rule-bind');
   }
 
-  function _bind(performer) {
+  function exec(performer) {
     
   }
+  var _try = exec;
 
   function sequence() {
     console.log('sequence');
@@ -255,7 +256,7 @@ module.exports = (function(){
 
   function xpre() {
     console.log('xpre'); 
-  }
+  }  
   
   /* INITIALIZER */
   
@@ -267,129 +268,153 @@ module.exports = (function(){
   /* RULES DEFINITIONS */
   
   rules.start = function() {
-    action(
-      any(
-        b(rules.a)
-      ),
-      function() {
-         console.log(foo); 
-      }
+    _try(
+      action(
+        any(
+          ref(rules.a)
+        ),
+        function() {
+           console.log(foo); 
+        }
+      )
     );
   }
   
   rules.a = function() {
-    sequence(
-      b(rules.w),
-      some(
-        b(rules.m)
-      ),
-      any(
-        action(
-          choice(
-            match("b"),
-            label("d",
-              match("c")
-            )
-          ),
-          function() {
-             return d; 
-          }
+    _try(
+      sequence(
+        ref(rules.w),
+        some(
+          ref(rules.m)
+        ),
+        any(
+          action(
+            choice(
+              match("b"),
+              label("d",
+                match("c")
+              )
+            ),
+            function() {
+               return d; 
+            }
+          )
         )
       )
     );
   }
   
   rules.w = function() {
-    some(
-      action(
-        b(rules.c),
-        function() {
-           console.log('test'); 
-        }
+    _try(
+      some(
+        action(
+          ref(rules.c),
+          function() {
+             console.log('test'); 
+          }
+        )
       )
     );
   }
   
   rules.c = function() {
-    choice(
-      match("a"),
-      match("e"),
-      b(rules.g)
+    _try(
+      choice(
+        match("a"),
+        match("e"),
+        ref(rules.g)
+      )
     );
   }
   
   rules.g = function() {
-    imatch(/oooo/i);
+    _try(
+      imatch(/oooo/i)
+    );
   }
   
   rules.m = function() {
-    sequence(
-      match("a"),
-      maybe(
-        b(rules.n)
+    _try(
+      sequence(
+        match("a"),
+        maybe(
+          ref(rules.n)
+        )
       )
     );
   }
   
   rules.n = function() {
-    label("d",
-      action(
-        sequence(
-          some(
-            b(rules.b)
+    _try(
+      label("d",
+        action(
+          sequence(
+            some(
+              ref(rules.b)
+            ),
+            ref(rules.e),
+            ref(rules.f)
           ),
-          b(rules.e),
-          b(rules.f)
-        ),
-        function() {
-           return "aa"; 
-        }
+          function() {
+             return "aa"; 
+          }
+        )
       )
     );
   }
   
   rules.b = function() {
-    match("wee");
+    _try(
+      match("wee")
+    );
   }
   
   rules.e = function() {
-    sequence(
-      match("meeh"),
-      b(rules.one_char),
-      label("f",
-        not(
-          b(rules.one_char)
+    _try(
+      sequence(
+        match("meeh"),
+        ref(rules.one_char),
+        label("f",
+          not(
+            ref(rules.one_char)
+          )
         )
       )
     );
   }
   
   rules.f = function() {
-    choice(
-      match("foo"),
-      and(
-        b(rules.two_strange_chars)
+    _try(
+      choice(
+        match("foo"),
+        and(
+          ref(rules.two_strange_chars)
+        )
       )
     );
   }
   names.f="foo";
   
   rules.one_char = function() {
-    sequence(
-      xpre(function() {
-         console.log("not predicate"); return false; 
-      }),
-      char()
+    _try(
+      sequence(
+        xpre(function() {
+           console.log("not predicate"); console.log(foo); return false; 
+        }),
+        char()
+      )
     );
   }
   
   rules.two_strange_chars = function() {
-    sequence(
-      pre(function() {
-         console.log("predicate"); return true; 
-      }),
-      re(/^[a-n]/i, "[a-n]i"),
-      re(/^[^A-Z]/, "[^A-Z]")
+    _try(
+      sequence(
+        pre(function() {
+           console.log("predicate"); return true; 
+        }),
+        re(/^[a-n]/i, "[a-n]i"),
+        re(/^[^A-Z]/, "[^A-Z]")
+      )
     );
   }
   names.two_strange_chars="tsc";
@@ -398,18 +423,16 @@ module.exports = (function(){
   
   for (rule in rules) {
     rules[rule] = (function(name, rule) { return function() {
-      /*if (inCache(name)) return fromCache(name);
-      ctx_inject(ctx, deep, target);
-      return toCache(name, rule());*/
-      console.log('in','rule',name);
+      //if (inCache(name)) return fromCache(name);
+      //ctx_inject(ctx, deep, target);
+      //return toCache(name, rule());
       rule();
-      console.log('out','rule',name);
     }; })(rule, rules[rule]);
   }
   
-  var g = this; // means "global"
-
   /* RESULT OBJECT + PARSE FUNCTION */
+  
+  var g = this;
   
   var result = {
     /*

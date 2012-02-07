@@ -475,7 +475,7 @@ PEG.compiler.emitter = function(ast) {
             '      //if (inCache(name)) return fromCache(name);',
             '      //ctx_inject(ctx, deep, target);', // FIXME: inject only before actions
             '      //return toCache(name, rule());',
-            '      rule();'
+            '      rule();',
             '    }; })(rule, rules[rule]);',
             '  }',
             '  ',
@@ -498,7 +498,7 @@ PEG.compiler.emitter = function(ast) {
             '      // initialize variables',
             '      pos = 0, deep = 1, cache = {}, ctx = []',
             '      failures = { rightest: 0, expected: [] },',
-            '      g.input = input;'
+            '      g.input = input;',
             '      ',
             '      // load object returned from initializer into zero-level of context',
             '      #if initializerDef',
@@ -534,11 +534,11 @@ PEG.compiler.emitter = function(ast) {
             '  ',
             '  /* Thrown when a parser encounters a syntax error. */',
             '  ',
-            '  result.SyntaxError = function(message, errorPos) {',
+            '  result.SyntaxError = function(message, errPos) {',
             '    this.name = "SyntaxError";',
             '    this.message = message;',
-            '    this.line = errorPos[0];',
-            '    this.column = errorPos[1];', 
+            '    this.line = errPos[0];',
+            '    this.column = errPos[1];', 
             '  };', // TODO: add expected names / types of nodes to SyntaxError (failures object)
             '  ',
             '  result.SyntaxError.prototype = Error.prototype;',
@@ -548,7 +548,9 @@ PEG.compiler.emitter = function(ast) {
           ],
           rule: [
             'rules.#{node.name} = function() {',
-            '  #block code',
+            '  _try(', // seek/find/acq?
+            '    #block code',
+            '  );',
             '}', // FIXME: displayName!
             '#if node.displayName',
             '  names.#{node.name}=#{string(node.displayName)};',
@@ -620,7 +622,7 @@ PEG.compiler.emitter = function(ast) {
             ')'       
           ],
           rule_ref: [
-            'b(rules.#{node.name})'
+            'ref(rules.#{node.name})'
           ],
           literal: [
             '#if !node.ignoreCase',
@@ -680,8 +682,7 @@ PEG.compiler.emitter = function(ast) {
     rule: function(node) {
       return fill("rule", {
         node:       node,
-        code:       emit(node.expression) + ';' // FIXME: may be appending
-                                                // semicolon here is not ok
+        code:       emit(node.expression)
       });
     },
 
