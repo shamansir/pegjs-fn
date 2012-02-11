@@ -196,67 +196,93 @@ module.exports = (function(){
 
   /* PEFORMERS */
 
-  function ref(rule) { // means 'bind'
-    console.log('rule-bind');
+  function bind(f, args) { 
+    return function() {
+        return f.apply(null, args);
+    };
   }
 
-  function exec(performer) {
-    
+  function wrap(f) {
+    return function() {
+      return bind(f, arguments);
+    }
+  }
+
+  function exec(f) {
+      console.log('exec');
   }
   var _try = exec;
 
-  function sequence() {
+  function ref(rule) { // just calls a rule
+    console.log('rule-bind');
+  }
+  ref = wrap(ref);
+
+  function sequence(/*f...*/) {
     console.log('sequence');
   }
-  // TODO: sequence = _bind(sequence);
+  // TODO: do this stuff in single loop
+  sequence = wrap(sequence);
 
-  function any() {
+  function any(f) {
     console.log('any');
   }
+  any = wrap(any);
 
-  function some() {
+  function some(f) {
     console.log('some');
   }
+  some = wrap(some);
 
   function action(f, code) {
     console.log('action'); 
   }
+  action = wrap(action);
 
-  function choice() {
+  function choice(/*f...*/) {
     console.log('choice'); 
   }
+  choice = wrap(choice);
 
   function match(str) {
     console.log('match', str);  
   }
+  match = wrap(match);
 
   function imatch(re) {
     console.log('imatch', re);  
   }
+  imatch = wrap(imatch);
 
-  function label(lbl, code) {
+  function label(lbl, f) {
     console.log('label', lbl);
   }
+  label = wrap(label);
 
-  function maybe() {
+  function maybe(f) {
     console.log('maybe'); 
   }
+  maybe = wrap(maybe);
 
-  function not() {
+  function not(f) {
     console.log('not'); 
   }
+  not = wrap(not);
 
-  function and() {
+  function and(f) {
     console.log('and'); 
   }
+  and = wrap(and);
 
-  function pre() {
+  function pre(code) {
     console.log('pre'); 
   }
+  pre = wrap(pre);
 
-  function xpre() {
+  function xpre(code) {
     console.log('xpre'); 
-  }  
+  }
+  xpre = wrap(xpre);
   
   /* INITIALIZER */
   

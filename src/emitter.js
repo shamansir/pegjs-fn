@@ -805,3 +805,53 @@ PEG.compiler.emitter = function(ast) {
   return emit(ast);
 };
 
+/* TODO:
+
+(function(global_ctx) { 
+
+    // here is the user context, variables
+    // defined here are accessible to user 
+
+    var __g = global_ctx;
+    __g.__test_var = 5;
+    if (__test_var !== 5) alert('__g is not global context');
+
+    (function() {
+
+        // here is the inner context, variables
+        // defined here are not accessible to user   
+
+        var scope = [
+            { a: 16 },
+            { oo: 12 },
+            { b: 17, c: 20 } 
+        ]; 
+
+        function action(f) {
+            //console.log('call user func');
+            loadVars(__g, 2);
+            f();
+        }
+        // __g.__a = action;
+
+        // xpre, pre, ...
+
+        function loadVars(g, level) {
+            for (name in scope[level]) {
+                g[name] = scope[level][name];
+            }
+        }
+
+    })();
+
+    if (typeof scope !== 'undefined') alert('scope is visible, error');
+    if (typeof loadVars !== 'undefined') alert('loadVars is visible, error');
+
+    __a(function() { // user function will be inserted here
+        if (typeof oo !== 'undefined') alert('user function sees what it must not see');
+        alert(b + ', ' + c);
+    }); 
+
+})(this);
+
+*/
