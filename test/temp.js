@@ -17,19 +17,20 @@ var ctx = {};
       ctx = [], // []
       _g = this,
       current = null, // ''
-      input = 'aaaaa',
+      input = 'aaaa',
       ilen = input.length;
       result = null;
 
-function MatchFailed(what, expected) {
+function MatchFailed(what, expected, found) {
   this.what = what;
   this.expected = expected;
+  this.found = found;
 }
 MatchFailed.prototype = new Error();
 
-function failed(expected) {
+function failed(expected, found) {
   failures.push(expected);
-  throw new MatchFailed(current, expected);
+  throw new MatchFailed(current, expected, found);
 }
 function safe(f, callback) {
   try {
@@ -68,6 +69,8 @@ rules.f = function() { current = 'f'; console.log('rules.f') }
 
 // ========
 
+var EOI = 'end of input';
+
 function ref(rule) { return rule(); }
 ref = wrap(ref);
 
@@ -89,13 +92,14 @@ choise = wrap(choise);
 function match(str) {
   var slen = str.length;
   if ((pos + slen) > ilen) {
-    failed(str);
+    failed(str, EOI);
   }
-  if (input.substr(pos, slen) === str) {
+  var found = '';
+  if ((found = input.substr(pos, slen)) === str) {
     pos += slen;
     return str;
   }
-  failed(str);
+  failed(str, found);
 }
 match = wrap(match);
 
@@ -123,8 +127,8 @@ some = wrap(some);
 }, function(e) { console.log(e) });*/
 
   __test = function() {
+    current = '__test';
     exec(some(match('a')));
-    console.log(result);
     /*exec(
       label("d",
         action(
@@ -141,7 +145,15 @@ some = wrap(some);
         )
       )
     );*/
+    console.log(result);
   };
 
-__test();
+try {
+  __test();
+} catch(e) {
+  if (e instanceof MatchFailed) {
+    console.log('Error:',e,
+                'Failures:',failures);
+  }
+}
 
