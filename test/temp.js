@@ -12,12 +12,14 @@ var ctx = {};
 } */
 
   var pos = 0, // 0
-      failures = {}, // {}
+      failures = [], // {}
       deep = 0, // 1
       ctx = [], // []
       _g = this,
       current = null, // ''
-      input = 'aaaaa';
+      input = 'aaaaa',
+      ilen = input.length;
+      result = null;
 
 function MatchFailed(what, expected) {
   this.what = what;
@@ -26,12 +28,12 @@ function MatchFailed(what, expected) {
 MatchFailed.prototype = new Error();
 
 function failed(expected) {
-  failures.push(what);
+  failures.push(expected);
   throw new MatchFailed(current, expected);
 }
 function safe(f, callback) {
   try {
-    f();
+    return f();
   } catch(e) {
     if (e instanceof MatchFailed) {
       if (callback) callback(e);
@@ -41,7 +43,7 @@ function safe(f, callback) {
   }
 }
 
-function bind(f, args) { 
+function bind(f, args) {
   return function() {
       return f.apply(null, args);
   };
@@ -54,7 +56,7 @@ function wrap(f) {
 }
 
 function exec(f) {
-  f();
+  result = f();
 }
 
 // =======
@@ -62,59 +64,67 @@ function exec(f) {
 var rules = {};
 rules.b = function() { current = 'b'; console.log('rules.b') }
 rules.e = function() { current = 'e'; console.log('rules.e') }
-rules.f = function() { current = 'f'; console.log('rules.f') } 
+rules.f = function() { current = 'f'; console.log('rules.f') }
 
 // ========
-    
+
 function ref(rule) { return rule(); }
 ref = wrap(ref);
 
 function action(f, code) {
-  console.log('action');    
+  console.log('action');
 }
 action = wrap(action);
 
 function sequence(/*function...*/) {
-  console.log('sequence');    
+  console.log('sequence');
 }
 sequence = wrap(sequence);
 
 function choise(/*function...*/) {
-  console.log('choise');    
+  console.log('choise');
 }
 choise = wrap(choise);
 
 function match(str) {
-  pos++;
-  console.log('match', str);  
+  var slen = str.length;
+  if ((pos + slen) > ilen) {
+    failed(str);
+  }
+  if (input.substr(pos, slen) === str) {
+    pos += slen;
+    return str;
+  }
+  failed(str);
 }
 match = wrap(match);
 
 function label(lbl, f) {
-  console.log('label', lbl); 
+  console.log('label', lbl);
 }
 label = wrap(label);
 
 function some(f) {
-  console.log('some');
-  f();
+  var s = [];
+  s.push(f());
   var failed = 0;
-  while (!failed
-         && (pos < input.length)) {
-    safe(f, function() {
-      console.log('failed');
+  while (!failed) {
+    s.push(safe(f, function() {
       failed = 1;
-    });
+    }));
   }
+  if (failed) s.splice(-1);
+  return s;
 }
 some = wrap(some);
 
 /*safe(function() {
-  throw new MatchFailed('haha','woo'); 
+  throw new MatchFailed('haha','woo');
 }, function(e) { console.log(e) });*/
 
   __test = function() {
     exec(some(match('a')));
+    console.log(result);
     /*exec(
       label("d",
         action(
@@ -126,7 +136,7 @@ some = wrap(some);
             ref(rules.f)
           ),
           function() {
-             return "aa"; 
+             return "aa";
           }
         )
       )
@@ -134,3 +144,4 @@ some = wrap(some);
   };
 
 __test();
+
