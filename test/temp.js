@@ -17,7 +17,7 @@ var ctx = {};
       ctx = [], // []
       _g = this,
       current = null, // ''
-      input = 'ababab',
+      input = 'abbcbc',
       ilen = input.length;
       result = null;
 
@@ -79,10 +79,15 @@ function action(f, code) {
 }
 action = wrap(action);
 
-function sequence(/*f...*/) {
-  console.log('sequence');
+function seqnc(/*f...*/) { // done
+  var fs = arguments,
+      s = [];
+  for (var fi = 0; fi < fs.length; fi++) {
+    s.push(fs[fi]());  
+  }
+  return s;
 }
-sequence = wrap(sequence);
+seqnc = wrap(seqnc);
 
 function choise(/*f...*/) {
   console.log('choise');
@@ -109,14 +114,14 @@ function label(lbl, f) {
 label = wrap(label);
 
 function some(f) { // done
-  // FIXME: requires to enable any when some used
+  // FIXME: requires to enable `any` when `some` used
   return [f()].concat(any(f)());
 }
 some = wrap(some);
 
 function any(f) { // done
-  var s = [];
-  var failed = 0;
+  var s = [],
+      failed = 0;
   while (!failed) {
     s.push(safe(f, function() {
       failed = 1;
@@ -133,7 +138,8 @@ any = wrap(any);
 
   __test = function() {
     current = '__test';
-    return exec(any(match('ab')));
+    return exec(seqnc(match('ab'),
+                      some(match('bc'))));
     /*exec(
       label("d",
         action(
@@ -154,6 +160,7 @@ any = wrap(any);
 
 try {
   console.log(__test());
+  console.log(ctx);
 } catch(e) {
   if (e instanceof MatchFailed) {
     console.log('Error:',e,
