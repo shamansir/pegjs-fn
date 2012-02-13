@@ -17,7 +17,7 @@ var ctx = {};
       ctx = [], // []
       _g = this,
       current = null, // ''
-      input = 'aaaa',
+      input = 'ababab',
       ilen = input.length;
       result = null;
 
@@ -29,7 +29,7 @@ function MatchFailed(what, expected, found) {
 MatchFailed.prototype = new Error();
 
 function failed(expected, found) {
-  failures.push(expected);
+  failures.push(expected); // TODO: ensure if actual failures pushed
   throw new MatchFailed(current, expected, found);
 }
 function safe(f, callback) {
@@ -57,7 +57,7 @@ function wrap(f) {
 }
 
 function exec(f) {
-  result = f();
+  return f();
 }
 
 // =======
@@ -79,17 +79,17 @@ function action(f, code) {
 }
 action = wrap(action);
 
-function sequence(/*function...*/) {
+function sequence(/*f...*/) {
   console.log('sequence');
 }
 sequence = wrap(sequence);
 
-function choise(/*function...*/) {
+function choise(/*f...*/) {
   console.log('choise');
 }
 choise = wrap(choise);
 
-function match(str) {
+function match(str) { // done
   var slen = str.length;
   if ((pos + slen) > ilen) {
     failed(str, EOI);
@@ -108,9 +108,14 @@ function label(lbl, f) {
 }
 label = wrap(label);
 
-function some(f) {
+function some(f) { // done
+  // FIXME: requires to enable any when some used
+  return [f()].concat(any(f)());
+}
+some = wrap(some);
+
+function any(f) { // done
   var s = [];
-  s.push(f());
   var failed = 0;
   while (!failed) {
     s.push(safe(f, function() {
@@ -120,7 +125,7 @@ function some(f) {
   if (failed) s.splice(-1);
   return s;
 }
-some = wrap(some);
+any = wrap(any);
 
 /*safe(function() {
   throw new MatchFailed('haha','woo');
@@ -128,7 +133,7 @@ some = wrap(some);
 
   __test = function() {
     current = '__test';
-    exec(some(match('a')));
+    return exec(any(match('ab')));
     /*exec(
       label("d",
         action(
@@ -145,11 +150,10 @@ some = wrap(some);
         )
       )
     );*/
-    console.log(result);
   };
 
 try {
-  __test();
+  console.log(__test());
 } catch(e) {
   if (e instanceof MatchFailed) {
     console.log('Error:',e,
