@@ -17,20 +17,19 @@ var ctx = {};
       ctx = [], // []
       _g = this,
       current = null, // ''
-      input = 'aaaa',
+      input = 'abb',
       ilen = input.length;
       result = null;
 
-function MatchFailed(what, expected, found) {
+function MatchFailed(what, found) {
   this.what = what;
-  this.expected = expected;
   this.found = found;
 }
 MatchFailed.prototype = new Error();
 
 function failed(expected, found) {
   failures.push(expected); // TODO: ensure if actual failures pushed
-  throw new MatchFailed(current, expected, found);
+  throw new MatchFailed(current, found);
 }
 function safe(f, callback) {
   try {
@@ -74,8 +73,8 @@ var EOI = 'end of input';
 function ref(rule) { return rule(); }
 ref = wrap(ref);
 
-function action(f, code) {
-  console.log('action');
+function action(f, code) { // done
+  f(); return code();
 }
 action = wrap(action);
 
@@ -92,17 +91,19 @@ seqnc = wrap(seqnc);
 function choise(/*f...*/) { // done
   var fs = arguments,
       missed = 0,
+      my_e = null;
       exp = [], fnd = null;
   for (var fi = 0; fi < fs.length; fi++) {
     var res = safe(fs[fi], function(e) {
       exp.push(e.expected); 
       fnd = e.found;
+      my_e = e;
       missed = 1;
     });
     if (!missed) return res; // [res] ?
     missed = 0;
   }
-  failed(exp, fnd);
+  throw my_e; // FIXME: failures are wrong
 }
 choise = wrap(choise);
 
@@ -150,9 +151,10 @@ any = wrap(any);
 
   __test = function() {
     current = '__test';
-    return exec(choise(match('ab'),
-                       some(match('bc')),
-                       some(match('a'))));
+    return exec(action(choise(match('ab'),
+                              some(match('bc')),
+                              some(match('a'))
+                      ), function() { return 42; }));
     /*exec(
       label("d",
         action(
@@ -172,7 +174,12 @@ any = wrap(any);
   };
 
 try {
-  console.log(__test());
+  var res = __test();
+  console.log('pos',pos,'len',input.length);
+  if (pos < input.length) failed(EOI, input.charAt(pos));
+  console.log(res);
+  /*input = 'a';
+  console.log(exec(some(match('b'))));*/
   console.log(ctx);
 } catch(e) {
   if (e instanceof MatchFailed) {
