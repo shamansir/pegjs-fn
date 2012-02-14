@@ -17,7 +17,7 @@ var ctx = {};
       ctx = [], // []
       _g = this,
       current = null, // ''
-      input = 'abbcbc',
+      input = 'aaaa',
       ilen = input.length;
       result = null;
 
@@ -89,8 +89,20 @@ function seqnc(/*f...*/) { // done
 }
 seqnc = wrap(seqnc);
 
-function choise(/*f...*/) {
-  console.log('choise');
+function choise(/*f...*/) { // done
+  var fs = arguments,
+      missed = 0,
+      exp = [], fnd = null;
+  for (var fi = 0; fi < fs.length; fi++) {
+    var res = safe(fs[fi], function(e) {
+      exp.push(e.expected); 
+      fnd = e.found;
+      missed = 1;
+    });
+    if (!missed) return res; // [res] ?
+    missed = 0;
+  }
+  failed(exp, fnd);
 }
 choise = wrap(choise);
 
@@ -121,13 +133,13 @@ some = wrap(some);
 
 function any(f) { // done
   var s = [],
-      failed = 0;
-  while (!failed) {
+      missed = 0;
+  while (!missed) {
     s.push(safe(f, function() {
-      failed = 1;
+      missed = 1;
     }));
   }
-  if (failed) s.splice(-1);
+  if (missed) s.splice(-1);
   return s;
 }
 any = wrap(any);
@@ -138,8 +150,9 @@ any = wrap(any);
 
   __test = function() {
     current = '__test';
-    return exec(seqnc(match('ab'),
-                      some(match('bc'))));
+    return exec(choise(match('ab'),
+                       some(match('bc')),
+                       some(match('a'))));
     /*exec(
       label("d",
         action(
