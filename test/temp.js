@@ -19,7 +19,6 @@ var ctx = {};
       current = null, // ''
       input = 'abb',
       ilen = input.length;
-      result = null;
 
 function MatchFailed(what, found) {
   this.what = what;
@@ -48,7 +47,6 @@ function bind(f, args) {
       return f.apply(null, args);
   };
 }
-
 function wrap(f) {
   return function() {
     return bind(f, arguments);
@@ -57,6 +55,10 @@ function wrap(f) {
 
 function exec(f) {
   return f();
+}
+
+function ctx_deeper() {
+  
 }
 
 // =======
@@ -92,11 +94,8 @@ function choise(/*f...*/) { // done
   var fs = arguments,
       missed = 0,
       my_e = null;
-      exp = [], fnd = null;
   for (var fi = 0; fi < fs.length; fi++) {
     var res = safe(fs[fi], function(e) {
-      exp.push(e.expected); 
-      fnd = e.found;
       my_e = e;
       missed = 1;
     });
@@ -175,8 +174,8 @@ any = wrap(any);
 
 try {
   var res = __test();
-  console.log('pos',pos,'len',input.length);
-  if (pos < input.length) failed(EOI, input.charAt(pos));
+  console.log('pos',pos,'len',ilen);
+  if (pos < ilen) failed(EOI, input.charAt(pos));
   console.log(res);
   /*input = 'a';
   console.log(exec(some(match('b'))));*/
