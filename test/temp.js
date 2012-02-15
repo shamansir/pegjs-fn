@@ -1,7 +1,5 @@
 // the same as at http://jsfiddle.net/shaman_sir/FQVeb/...
 
-var ctx = {};
-
 /* function(f) {
   return function() {
     var d = arguments;
@@ -11,14 +9,23 @@ var ctx = {};
   }
 } */
 
-  var pos = 0, // 0
-      failures = [], // {}
-      deep = 0, // 1
-      ctx = [], // []
-      _g = this,
-      current = null, // ''
-      input = 'abb',
-      ilen = input.length;
+var pos = 0, // 0
+    failures = [], // {}
+    deep = 0, // 1
+    ctx = { __p: null }, // {}
+    cctx = ctx,
+    _g = this,
+    current = null, // ''
+    input = 'abb',
+    ilen = input.length;
+
+function each(x, f) {
+  for (p in x) {
+    if (x.hasOwnProperty(p)) {
+      f(p, x[p]);
+    }
+  }
+}
 
 function MatchFailed(what, found) {
   this.what = what;
@@ -54,11 +61,27 @@ function wrap(f) {
 }
 
 function exec(f) {
-  return f();
+  return f(); // just call f in code?
 }
 
-function ctx_deeper() {
-  
+function ctx_in() {
+  var inner = {};
+  inner.__p = cctx;
+  cctx = inner; 
+}
+function ctx_out() {
+  each(cctx, function(prop) {
+    delete _g[prop];  // make undefined?
+  });
+  cctx = cctx.__p;
+  var p = cctx;
+  var apply = function(prop, val) {
+    _g[prop] = val;
+  };
+  while (p) {
+    each(p, apply);
+    p = p.__p;
+  }
 }
 
 // =======
@@ -148,29 +171,29 @@ any = wrap(any);
   throw new MatchFailed('haha','woo');
 }, function(e) { console.log(e) });*/
 
-  __test = function() {
-    current = '__test';
-    return exec(action(choise(match('ab'),
-                              some(match('bc')),
-                              some(match('a'))
-                      ), function() { return 42; }));
-    /*exec(
-      label("d",
-        action(
-          sequence(
-            some(
-              ref(rules.b)
-            ),
-            ref(rules.e),
-            ref(rules.f)
+__test = function() {
+  current = '__test';
+  return exec(action(choise(match('ab'),
+                            some(match('bc')),
+                            some(match('a'))
+                           ), function() { return 42; }));
+  /*exec(
+    label("d",
+      action(
+        sequence(
+          some(
+            ref(rules.b)
           ),
-          function() {
-             return "aa";
-          }
-        )
+          ref(rules.e),
+          ref(rules.f)
+        ),
+        function() {
+           return "aa";
+        }
       )
-    );*/
-  };
+    )
+  );*/
+};
 
 try {
   var res = __test();
