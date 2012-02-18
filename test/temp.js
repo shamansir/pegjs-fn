@@ -12,20 +12,14 @@
 var pos = 0, // 0
     failures = [], // {}
     deep = 0, // 1
-    ctx = { __p: null }, // {}
-    cctx = ctx,
+    ctx = { __p: null,
+            __c: null,
+            __w: [] }, // {}
+    cctx = null,
     _g = this,
     current = null, // ''
-    input = 'abb',
+    input = 'abbcbca',
     ilen = input.length;
-
-function each(x, f) {
-  for (p in x) {
-    if (x.hasOwnProperty(p)) {
-      f(p, x[p]);
-    }
-  }
-}
 
 function MatchFailed(what, found) {
   this.what = what;
@@ -64,24 +58,37 @@ function exec(f) {
   return f(); // just call f in code?
 }
 
-function ctx_in() {
-  var inner = {};
-  inner.__p = cctx;
+function din() { // dive in
+  if (!cctx) {
+    cctx = ctx;
+    return;
+  }
+  if (cctx.__c) {
+    cctx = cctx.__c;
+    return;
+  }
+  var inner = {
+    __p: cctx, 
+    __w: [], __c: null,
+  };
+  cctx.__c = inner;
   cctx = inner; 
 }
-function ctx_out() {
-  each(cctx, function(prop) {
-    delete _g[prop];  // make undefined?
-  });
+function dout() { // dive out
   cctx = cctx.__p;
-  var p = cctx;
-  var apply = function(prop, val) {
-    _g[prop] = val;
-  };
-  while (p) {
-    each(p, apply);
-    p = p.__p;
+}
+function lctx() { // load context
+  var res = {};
+  var t = cctx;
+  if (!t.__p) return t;
+  var w = t.__w, p;
+  while (t) {
+    for (var i = w.length; i--;) {
+      p = w[i]; res[p] = w[p];
+    }
+    t = t.__p;
   }
+  return res;
 }
 
 // =======
@@ -99,14 +106,17 @@ function ref(rule) { return rule(); }
 ref = wrap(ref);
 
 function action(f, code) { // done
-  f(); return code();
+  din(); f();
+  var s = code(lctx());
+  dout(); return s;
 }
 action = wrap(action);
 
 function seqnc(/*f...*/) { // done
   var fs = arguments,
       s = [];
-  for (var fi = 0; fi < fs.length; fi++) {
+  for (var fi = 0, fl = fs.length; 
+       fi < fl; fi++) {
     s.push(fs[fi]());  
   }
   return s;
@@ -117,15 +127,16 @@ function choise(/*f...*/) { // done
   var fs = arguments,
       missed = 0,
       my_e = null;
-  for (var fi = 0; fi < fs.length; fi++) {
+  for (var fi = 0, fl = fs.length; 
+       fi < fl; fi++) {
     var res = safe(fs[fi], function(e) {
       my_e = e;
       missed = 1;
     });
-    if (!missed) return res; // [res] ?
+    if (!missed) return res;
     missed = 0;
   }
-  throw my_e; // FIXME: failures are wrong
+  throw my_e;
 }
 choise = wrap(choise);
 
@@ -144,12 +155,13 @@ function match(str) { // done
 match = wrap(match);
 
 function label(lbl, f) {
-  console.log('label', lbl);
+  cctx[lbl] = f();
+  cctx.__w.push(lbl);
 }
 label = wrap(label);
 
 function some(f) { // done
-  // FIXME: requires to enable `any` when `some` used
+  // NB: requires to enable `any` when `some` used
   return [f()].concat(any(f)());
 }
 some = wrap(some);
@@ -173,10 +185,12 @@ any = wrap(any);
 
 __test = function() {
   current = '__test';
-  return exec(action(choise(match('ab'),
-                            some(match('bc')),
-                            some(match('a'))
-                           ), function() { return 42; }));
+  return exec(action(seqnc(match('ab'),
+                           label('b',
+                              action(seqnc(some(match('bc')),
+                                           some(match('a'))),
+                                     function() { return 'foo'; }))
+                           ), function(x) { return x.b; }));
   /*exec(
     label("d",
       action(
