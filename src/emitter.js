@@ -628,7 +628,7 @@ PEG.compiler.emitter = function(ast) {
             '#if !node.ignoreCase',
             '  match(#{string(node.value)})',
             '#else',
-            '  imatch(/#{node.value}/i)',
+            '  imatch(/#{node.value}/i)', // re(value/i, value)?
             '#end'
           ],
           "class": [

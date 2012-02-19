@@ -15,7 +15,7 @@ var pos = 0, // 0
     ctx = { __p: null,
             __c: null,
             __w: [] }, // {}
-    cctx = null,
+    cctx = ctx,
     _g = this,
     current = null, // ''
     input = 'abbcbca',
@@ -37,9 +37,7 @@ function safe(f, callback) {
   } catch(e) {
     if (e instanceof MatchFailed) {
       if (callback) callback(e);
-    } else {
-      throw e;
-    }
+    } else { throw e; }
   }
 }
 
@@ -54,23 +52,17 @@ function wrap(f) {
   }
 }
 
-function exec(f) {
+/* function exec(f) {
   return f(); // just call f in code?
-}
+} */
+
+// TODO: check context <-> initializer and rules <-> labels context
 
 function din() { // dive in
-  if (!cctx) {
-    cctx = ctx;
-    return;
-  }
-  if (cctx.__c) {
-    cctx = cctx.__c;
-    return;
-  }
-  var inner = {
-    __p: cctx, 
-    __w: [], __c: null,
-  };
+  /*if (!cctx) { cctx = ctx; return; }*/ // first level is for initializer
+  if (cctx.__c) { cctx = cctx.__c; return; }
+  var inner = { __p: cctx, 
+                __c: null, __w: [] };
   cctx.__c = inner;
   cctx = inner; 
 }
@@ -78,13 +70,13 @@ function dout() { // dive out
   cctx = cctx.__p;
 }
 function lctx() { // load context
-  var res = {};
   var t = cctx;
   if (!t.__p) return t;
-  var w = t.__w, p;
+  var res = {}, w, p;
   while (t) {
+    w = t.__w;
     for (var i = w.length; i--;) {
-      p = w[i]; res[p] = w[p];
+      p = w[i]; res[p] = t[p];
     }
     t = t.__p;
   }
@@ -143,14 +135,13 @@ choise = wrap(choise);
 function match(str) { // done
   var slen = str.length;
   if ((pos + slen) > ilen) {
-    failed(str, EOI);
+    failed(str, EOI); // exits
   }
-  var found = '';
-  if ((found = input.substr(pos, slen)) === str) {
+  if (input.substr(pos, slen) === str) {
     pos += slen;
     return str;
   }
-  failed(str, found);
+  failed(str, input[pos]);
 }
 match = wrap(match);
 
@@ -179,18 +170,54 @@ function any(f) { // done
 }
 any = wrap(any);
 
+function pre(code) {
+  /*return code(lctx())
+             ? '' : failed(input[pos], EOI);*/
+}
+pre = wrap(pre);
+
+function xpre(code) {
+  
+}
+xpre = wrap(xpre);
+
+function and(f) {
+  
+}
+and = wrap(and);
+
+function not(f) {
+  
+}
+not = wrap(not);
+
+function re(rx, desc) {
+  
+}
+re = wrap(re);
+
+function imatch(rx) {
+  
+}
+imatch = wrap(imatch);
+
+function ch() { // char
+  
+}
+ch = wrap(ch);
+
 /*safe(function() {
   throw new MatchFailed('haha','woo');
 }, function(e) { console.log(e) });*/
 
 __test = function() {
   current = '__test';
-  return exec(action(seqnc(match('ab'),
-                           label('b',
-                              action(seqnc(some(match('bc')),
-                                           some(match('a'))),
-                                     function() { return 'foo'; }))
-                           ), function(x) { return x.b; }));
+  return action(seqnc(match('ab'),
+                      label('b',
+                          action(seqnc(some(match('bc')),
+                                       some(match('a'))),
+                                 function() { return 'foo'; }))
+                     ), function(x) { console.log(x); return x.b; })();
   /*exec(
     label("d",
       action(
