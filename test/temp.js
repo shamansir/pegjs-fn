@@ -18,7 +18,7 @@ var pos = 0, // 0
     cctx = ctx,
     _g = this,
     current = null, // ''
-    input = 'abbcbca',
+    input = 'bl',
     ilen = input.length;
 
 function MatchFailed(what, found) {
@@ -187,12 +187,21 @@ function xpre(code) {
 xpre = wrap(xpre);
 
 function and(f) {
-  
+  var prev = pos;
+  f();
+  pos = prev;
+  return '';
 }
 and = wrap(and);
 
 function not(f) {
-  
+  var prev = pos, missed = 0;
+  safe(f, function() {
+    missed = 1;
+  });
+  pos = prev;
+  if (missed) return '';
+  failed(EOI, input[pos]);
 }
 not = wrap(not);
 
@@ -207,7 +216,7 @@ function imatch(rx) {
 imatch = wrap(imatch);
 
 function ch() { // char
-  
+  //return input[pos++];
 }
 ch = wrap(ch);
 
@@ -224,13 +233,7 @@ function initializer() {
 
 __test = function() {
   current = '__test';
-  return action(seqnc(xpre(function(x) { console.log('a', x.a); console.log('b', x.b); return false; }),
-                      match('ab'),
-                      label('b',
-                          action(seqnc(some(match('bc')),
-                                       some(match('a'))),
-                                 function() { return 'foo'; }))
-                     ), function(x) { console.log('b', x.b); return x.b; })();
+  return seqnc(not(match('a')), match('bl'))();
   /*exec(
     label("d",
       action(
