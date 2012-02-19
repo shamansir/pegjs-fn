@@ -73,14 +73,19 @@ function lctx() { // load context
   var t = cctx;
   if (!t.__p) return t;
   var res = {}, w, p;
-  while (t) {
-    w = t.__w;
+  while (t) { w = t.__w;
     for (var i = w.length; i--;) {
-      p = w[i]; res[p] = t[p];
+      // (to not override property that was already taken from child)
+      // FIXME: make shorter 
+      p = w[i]; if (!res.hasOwnProperty(p)) { res[p] = t[p]; }
     }
     t = t.__p;
   }
   return res;
+}
+function save(key, val) {
+  cctx[key] = val;
+  cctx.__w.push(key);
 }
 
 // =======
@@ -146,8 +151,7 @@ function match(str) { // done
 match = wrap(match);
 
 function label(lbl, f) {
-  cctx[lbl] = f();
-  cctx.__w.push(lbl);
+  save(lbl, f());
 }
 label = wrap(label);
 
@@ -171,13 +175,14 @@ function any(f) { // done
 any = wrap(any);
 
 function pre(code) {
-  /*return code(lctx())
-             ? '' : failed(input[pos], EOI);*/
+  return code(lctx())
+             ? '' : failed(input[pos], EOI);
 }
 pre = wrap(pre);
 
 function xpre(code) {
-  
+  return code(lctx())
+             ? failed(input[pos], EOI) : '';
 }
 xpre = wrap(xpre);
 
@@ -206,18 +211,26 @@ function ch() { // char
 }
 ch = wrap(ch);
 
+function initializer() {
+  return {
+    'a': 12,
+    'b': 14
+  };
+}
+
 /*safe(function() {
   throw new MatchFailed('haha','woo');
 }, function(e) { console.log(e) });*/
 
 __test = function() {
   current = '__test';
-  return action(seqnc(match('ab'),
+  return action(seqnc(xpre(function(x) { console.log('a', x.a); console.log('b', x.b); return false; }),
+                      match('ab'),
                       label('b',
                           action(seqnc(some(match('bc')),
                                        some(match('a'))),
                                  function() { return 'foo'; }))
-                     ), function(x) { console.log(x); return x.b; })();
+                     ), function(x) { console.log('b', x.b); return x.b; })();
   /*exec(
     label("d",
       action(
@@ -237,6 +250,8 @@ __test = function() {
 };
 
 try {
+  var inj = initializer();
+  for (p in inj) save(p, inj[p]);
   var res = __test();
   console.log('pos',pos,'len',ilen);
   if (pos < ilen) failed(EOI, input.charAt(pos));
