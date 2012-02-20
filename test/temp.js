@@ -18,7 +18,7 @@ var pos = 0, // 0
     cctx = ctx,
     _g = this,
     current = null, // ''
-    input = 'bl',
+    input = 'abY2',
     ilen = input.length;
 
 function MatchFailed(what, found) {
@@ -69,6 +69,10 @@ function din() { // dive in
 function dout() { // dive out
   cctx = cctx.__p;
 }
+function inctx(f) { // execute in own context and return
+  din(); var r = f(); 
+  dout(); return r;
+}
 function lctx() { // load context
   var t = cctx;
   if (!t.__p) return t;
@@ -99,13 +103,15 @@ rules.f = function() { current = 'f'; console.log('rules.f') }
 
 var EOI = 'end of input';
 
-function ref(rule) { return rule(); }
-ref = wrap(ref);
+ref = wrap(inctx); // will call rule inside context
 
 function action(f, code) { // done
-  din(); f();
+  /*din(); f();
   var s = code(lctx());
-  dout(); return s;
+  dout(); return s;*/
+  return inctx(function() {
+    f(); return code(lctx());
+  });
 }
 action = wrap(action);
 
@@ -188,7 +194,7 @@ xpre = wrap(xpre);
 
 function and(f) {
   var prev = pos;
-  f();
+  f(); 
   pos = prev;
   return '';
 }
@@ -206,7 +212,12 @@ function not(f) {
 not = wrap(not);
 
 function re(rx, desc) {
-  
+  var res, desc = desc || rx.source;
+  if (res = rx.exec(input.substr(pos))) {
+     if (res.index !== 0) failed(desc, input[pos]);
+     pos += res[0].length;
+     return res[0];
+  } else failed(desc, input[pos]);
 }
 re = wrap(re);
 
@@ -216,7 +227,8 @@ function imatch(rx) {
 imatch = wrap(imatch);
 
 function ch() { // char
-  //return input[pos++];
+  if (pos >= ilen) failed('some char', EOI); 
+  return input[pos++];
 }
 ch = wrap(ch);
 
@@ -233,7 +245,7 @@ function initializer() {
 
 __test = function() {
   current = '__test';
-  return seqnc(not(match('a')), match('bl'))();
+  return seqnc(re(/ab/i),re(/[A-Z]/),ch())();
   /*exec(
     label("d",
       action(
