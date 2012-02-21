@@ -26,12 +26,15 @@ function MatchFailed(what, found) {
 MatchFailed.prototype = new Error();
 
 function failed(expected, found) {
-  failures.push(expected); // TODO: ensure if actual failures pushed
+  var f; for (var i = failures.length; i--;) {
+    if (failures[i] === expected) {
+      f = 1; break;
+    }
+  }; if (!f) failures.push(expected);
   throw new MatchFailed(current, found);
 }
 function safe(f, callback) {
-  try {
-    return f();
+  try { return f();
   } catch(e) {
     if (e instanceof MatchFailed) {
       if (callback) callback(e);
@@ -252,7 +255,14 @@ __test = function() {
             ref(rules.b)
           ),
           ref(rules.e),
-          ref(rules.f)
+          ref(rules.f),
+          choise(
+            rules.f,
+            rules.f,
+            rules.b,
+            rules.b,
+            rules.e
+          )
         ),
         function() {
            return "aa";
