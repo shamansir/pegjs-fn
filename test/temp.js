@@ -11,12 +11,11 @@
 
 var pos = 0, // 0
     failures = [], // {}
-    deep = 0, // 1
     ctx = { __p: null,
             __c: null,
             __w: [] }, // {}
     cctx = ctx,
-    _g = this,
+    // _g = this,
     current = null, // ''
     input = 'abY2',
     ilen = input.length;
