@@ -10,14 +10,13 @@
 } */
 
 var pos = 0, // 0
-    failures = [], // {}
+    failures = [], // [],
     ctx = { __p: null,
             __c: null,
             __w: [] }, // {}
     cctx = ctx,
-    // _g = this,
     current = null, // ''
-    input = 'abY2',
+    input = 'bbef',
     ilen = input.length;
 
 function MatchFailed(what, found) {
@@ -89,14 +88,15 @@ function lctx() { // load context
 function save(key, val) {
   cctx[key] = val;
   cctx.__w.push(key);
+  return val;
 }
 
 // =======
 
 var rules = {};
-rules.b = function() { current = 'b'; console.log('rules.b') }
-rules.e = function() { current = 'e'; console.log('rules.e') }
-rules.f = function() { current = 'f'; console.log('rules.f') }
+rules.b = function() { current = 'b'; return match('b')(); }
+rules.e = function() { current = 'e'; return match('e')(); }
+rules.f = function() { current = 'f'; return match('f')(); }
 
 // ========
 
@@ -156,7 +156,7 @@ function match(str) { // done
 match = wrap(match);
 
 function label(lbl, f) {
-  save(lbl, f());
+  return save(lbl, f());
 }
 label = wrap(label);
 
@@ -220,10 +220,10 @@ function re(rx, desc) {
 }
 re = wrap(re);
 
-function imatch(rx) {
+/*function imatch(rx) { === re
   
 }
-imatch = wrap(imatch);
+imatch = wrap(imatch);*/
 
 function ch() { // char
   if (pos >= ilen) failed('some char', EOI); 
@@ -244,11 +244,10 @@ function initializer() {
 
 __test = function() {
   current = '__test';
-  return seqnc(re(/ab/i),re(/[A-Z]/),ch())();
-  /*exec(
-    label("d",
+  //return seqnc(re(/ab/i),re(/[A-Z]/),ch())();
+  return label("d",
       action(
-        sequence(
+        seqnc(
           some(
             ref(rules.b)
           ),
@@ -259,8 +258,7 @@ __test = function() {
            return "aa";
         }
       )
-    )
-  );*/
+    )();
 };
 
 try {
