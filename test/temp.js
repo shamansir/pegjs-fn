@@ -1,3 +1,5 @@
+/*jshint strict:false, curly:false */
+
 // the same as at http://jsfiddle.net/shaman_sir/FQVeb/...
 
 /* function(f) {
@@ -50,8 +52,22 @@ function bind(f, args) {
 function wrap(f) {
   return function() {
     return bind(f, arguments);
+  };
+}
+
+function quote(x) { return '"'+x+'"'}
+
+/*
+function wrap(f) {
+  return function() {
+    return (function(f, args) {
+      return function() {
+        return f.apply(null, args);
+      };
+    })(f, arguments);
   }
 }
+*/
 
 /* function exec(f) {
   return f(); // just call f in code?
@@ -97,15 +113,17 @@ function save(key, val) {
 // =======
 
 var rules = {};
-rules.b = function() { current = 'b'; return match('b')(); }
-rules.e = function() { current = 'e'; return match('e')(); }
-rules.f = function() { current = 'f'; return match('f')(); }
+rules.b = function() { current = 'b'; return match('b')(); };
+rules.e = function() { current = 'e'; return match('e')(); };
+rules.f = function() { current = 'f'; return match('f')(); };
 
 // ========
 
 var EOI = 'end of input';
 
-ref = wrap(inctx); // will call rule inside context
+function cc() { return quote(input.charAt(pos)); };
+
+var ref = wrap(inctx); // will call rule inside context
 
 function action(f, code) { // done
   /*din(); f();
@@ -131,13 +149,13 @@ seqnc = wrap(seqnc);
 function choise(/*f...*/) { // done
   var fs = arguments,
       missed = 0,
-      my_e = null;
+      my_e = null,
+      on_miss = function(e) {
+        my_e = e; missed = 1;
+      };
   for (var fi = 0, fl = fs.length; 
        fi < fl; fi++) {
-    var res = safe(fs[fi], function(e) {
-      my_e = e;
-      missed = 1;
-    });
+    var res = safe(fs[fi], on_miss);
     if (!missed) return res;
     missed = 0;
   }
@@ -154,7 +172,7 @@ function match(str) { // done
     pos += slen;
     return str;
   }
-  failed(str, input[pos]);
+  failed(str, cc());
 }
 match = wrap(match);
 
@@ -171,11 +189,10 @@ some = wrap(some);
 
 function any(f) { // done
   var s = [],
-      missed = 0;
+      missed = 0,
+      on_miss = function() { missed = 1; };
   while (!missed) {
-    s.push(safe(f, function() {
-      missed = 1;
-    }));
+    s.push(safe(f, on_miss));
   }
   if (missed) s.splice(-1);
   return s;
@@ -184,13 +201,13 @@ any = wrap(any);
 
 function pre(code) {
   return code(lctx())
-             ? '' : failed(input[pos], EOI);
+             ? '' : failed(cc(), EOI);
 }
 pre = wrap(pre);
 
 function xpre(code) {
   return code(lctx())
-             ? failed(input[pos], EOI) : '';
+             ? failed(cc(), EOI) : '';
 }
 xpre = wrap(xpre);
 
@@ -209,17 +226,17 @@ function not(f) {
   });
   pos = prev;
   if (missed) return '';
-  failed(EOI, input[pos]);
+  failed(EOI, cc());
 }
 not = wrap(not);
 
 function re(rx, desc) {
   var res, desc = desc || rx.source;
   if (res = rx.exec(input.substr(pos))) {
-     if (res.index !== 0) failed(desc, input[pos]);
+     if (res.index !== 0) failed(desc, cc());
      pos += res[0].length;
      return res[0];
-  } else failed(desc, input[pos]);
+  } else failed(desc, cc());
 }
 re = wrap(re);
 
@@ -245,7 +262,7 @@ function initializer() {
   throw new MatchFailed('haha','woo');
 }, function(e) { console.log(e) });*/
 
-__test = function() {
+function __test() {
   current = '__test';
   //return seqnc(re(/ab/i),re(/[A-Z]/),ch())();
   return label("d",
@@ -269,11 +286,11 @@ __test = function() {
         }
       )
     )();
-};
+}
 
 try {
   var inj = initializer();
-  for (p in inj) save(p, inj[p]);
+  for (var p in inj) save(p, inj[p]);
   var res = __test();
   console.log('pos',pos,'len',ilen);
   if (pos < ilen) failed(EOI, input.charAt(pos));
