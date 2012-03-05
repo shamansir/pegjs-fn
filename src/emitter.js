@@ -297,7 +297,6 @@ PEG.compiler.emitter = function(ast) {
             '  ',
             '  var pos, // 0',
             '      failures, // []',
-            '      rfpos, // 0'
             '      cache, // {}',
             '      ctx, // { ... }',
             '      cctx, // { ... }',
@@ -597,8 +596,9 @@ PEG.compiler.emitter = function(ast) {
             // TODO: add only those 'any/some/literal...'-function that factually used
             '  ',            
             '  for (rule in rules) {',
-            '    rules[rule] = def(function(name, rule) {' 
+            '    rules[rule] = (function(name, rule) {' 
             '      return function() {',
+            '        current = name;',
             '        if (cached(name)) return _cache(name);',
             '        return cache_(name, rule());',
             '      };'
@@ -608,7 +608,7 @@ PEG.compiler.emitter = function(ast) {
             /* =================== RESULT OBJECT ================ */
             '  /* RESULT OBJECT + PARSE FUNCTION */',
             '  ',
-            '  var g = this;',            
+            '  var g = this;' // FIXME: to set input, ensure that required
             '  ',
             '  var result = {',
             '    /*',
@@ -622,17 +622,19 @@ PEG.compiler.emitter = function(ast) {
             // TODO: use 'with' to give rules the context?
             '      ',       
             '      // initialize variables',
-            '      pos = 0, deep = 1, cache = {}, ctx = []',
-            '      failures = { rightest: 0, expected: [] },',
-            '      g.input = input;',
+            '      pos = 0, ilen = input.length, failures = [];',
+            '      g.input = input;'
             '      ',
-            '      // load object returned from initializer into zero-level of context',
+            '      cache = {};',
+            '      ctx = { __p: null, __c: null, __w: [] }, cctx = ctx;',
+            '      current = \'-\';',
+            '      ',
             '      #if initializerDef',
-            '        //ctx_load(ctx, 0, initialize());',
-            '        initialize();',
-            '        ',
-            '      #end', // TODO: allow to push vars into smth like 'i.', 'r.' variables,
-                          //       not only global context  
+            '        // load object returned from initializer into zero-level of context',
+            '        var inj = initialize();',
+            '        for (var p in inj) save (p, inj[p]);',
+            '      #end', 
+            '      ',
             '      // find start rule',
             '      if (startRule !== undefined) {',
             '        if (rules[startRule] === undefined) {',
@@ -643,22 +645,18 @@ PEG.compiler.emitter = function(ast) {
             '      }',
             '      ',
             '      // and execute it',
-            '      var result = rules[startRule]();',
+            '      var res = rules[startRule]();',
+            '      if ((pos < ilen) || ',
+            '          (res == null)) failed(EOI, cc());'
             '      ',
-            '      if (result === null || pos !== input.length) {',
-            '        throw new this.SyntaxError(', // TODO: test syntax error
-            '          errMsg(), errPos()',
-            '        );',
-            '      }',
-            '      ',
-            '      return result;',
+            '      return res;',
             '    },',
             '    ',
             '    /* Returns the parser source code. */',
             '    toSource: function() { return this._source; }',
             '  };',
             '  ',
-            '  /* Thrown when a parser encounters a syntax error. */',
+            /*'  // Thrown when a parser encounters a syntax error. ',
             '  ',
             '  result.SyntaxError = function(message, errPos) {',
             '    this.name = "SyntaxError";',
@@ -667,16 +665,16 @@ PEG.compiler.emitter = function(ast) {
             '    this.column = errPos[1];', 
             '  };', // TODO: add expected names / types of nodes to SyntaxError (failures object)
             '  ',
-            '  result.SyntaxError.prototype = Error.prototype;',
+            '  result.SyntaxError.prototype = Error.prototype;', */
             '  ',
             '  return result;',
             '})()'
           ],
           rule: [
             'rules.#{node.name} = function() {',
-            '  _try(', // seek/find/acq?
+            '  return ',
             '    #block code',
-            '  );',
+            '  ();',
             '}', // FIXME: displayName!
             '#if node.displayName',
             '  names.#{node.name}=#{string(node.displayName)};',
@@ -691,7 +689,7 @@ PEG.compiler.emitter = function(ast) {
             ')'
           ],
           sequence: [
-            'sequence(',
+            'seqnc(',
             '  #for expression in beforeLast',
             '    #block expression',
             '  #end',
@@ -742,7 +740,7 @@ PEG.compiler.emitter = function(ast) {
           action: [
             'action(',
             '  #block expression',
-            '  function() {',            
+            '  function(x) {',            
             '    #block node.code', 
             '  }',
             ')'       
@@ -754,7 +752,7 @@ PEG.compiler.emitter = function(ast) {
             '#if !node.ignoreCase',
             '  match(#{string(node.value)})',
             '#else',
-            '  imatch(/#{node.value}/i)', // re(value/i, value)?
+            '  re(/#{node.value}/i, #{string(node.value)})',
             '#end'
           ],
           "class": [
@@ -930,54 +928,3 @@ PEG.compiler.emitter = function(ast) {
 
   return emit(ast);
 };
-
-/* TODO:
-
-(function(global_ctx) { 
-
-    // here is the user context, variables
-    // defined here are accessible to user 
-
-    var __g = global_ctx;
-    __g.__test_var = 5;
-    if (__test_var !== 5) alert('__g is not global context');
-
-    (function() {
-
-        // here is the inner context, variables
-        // defined here are not accessible to user   
-
-        var scope = [
-            { a: 16 },
-            { oo: 12 },
-            { b: 17, c: 20 } 
-        ]; 
-
-        function action(f) {
-            //console.log('call user func');
-            loadVars(__g, 2);
-            f();
-        }
-        // __g.__a = action;
-
-        // xpre, pre, ...
-
-        function loadVars(g, level) {
-            for (name in scope[level]) {
-                g[name] = scope[level][name];
-            }
-        }
-
-    })();
-
-    if (typeof scope !== 'undefined') alert('scope is visible, error');
-    if (typeof loadVars !== 'undefined') alert('loadVars is visible, error');
-
-    __a(function() { // user function will be inserted here
-        if (typeof oo !== 'undefined') alert('user function sees what it must not see');
-        alert(b + ', ' + c);
-    }); 
-
-})(this);
-
-*/
