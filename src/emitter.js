@@ -331,11 +331,7 @@ PEG.compiler.emitter = function(ast) {
             '    }',
             '  }',
             '  ',
-            '  function emsg(e) { // error message TODO: make look like "a", "b" or "c"',
-            '    return "Expected " + failures + " but " + e.found + " found.";',
-            '  }',
-            '  ',
-            '  function epos() { // error 2-dimtnl position',
+            '  function epos(pos) { // error 2-dimtnl position',
             '    /*',
             '     * The first idea was to use |String.split| to break the input up to the',
             '     * error position along newlines and derive the line and column from',
@@ -360,6 +356,10 @@ PEG.compiler.emitter = function(ast) {
             '    ',
             '    return [ ln, col ];',
             '  }',
+            '  function emsg(e) { // error message TODO: make look like "a", "b" or "c"',
+            '    // TODO: e.what stores failed rule name'
+            '    return "Expected "+failures+ " but "+e.found+" found at "+epos(e.pos);',
+            '  }',            
             '  ',
             /* =================== CACHE ======================== */
             '  /* CACHE */',                    
@@ -645,9 +645,17 @@ PEG.compiler.emitter = function(ast) {
             '      }',
             '      ',
             '      // and execute it',
-            '      var res = rules[startRule]();',
-            '      if ((pos < ilen) || ',
-            '          (res == null)) failed(EOI, cc());'
+            '      var res;'
+            '      try {',
+            '        res = rules[startRule]();',
+            '        if ((pos < ilen) || ',
+            '            (res === null)) failed(EOI, cc());'
+            '      } catch(e) {',
+            '        if (e instanceof MatchFailed) {'
+            '          e.message = emsg(e);',
+            '        }',
+            '        throw e;'
+            '      }',
             '      ',
             '      return res;',
             '    },',
@@ -655,17 +663,6 @@ PEG.compiler.emitter = function(ast) {
             '    /* Returns the parser source code. */',
             '    toSource: function() { return this._source; }',
             '  };',
-            '  ',
-            /*'  // Thrown when a parser encounters a syntax error. ',
-            '  ',
-            '  result.SyntaxError = function(message, errPos) {',
-            '    this.name = "SyntaxError";',
-            '    this.message = message;',
-            '    this.line = errPos[0];',
-            '    this.column = errPos[1];', 
-            '  };', // TODO: add expected names / types of nodes to SyntaxError (failures object)
-            '  ',
-            '  result.SyntaxError.prototype = Error.prototype;', */
             '  ',
             '  return result;',
             '})()'
