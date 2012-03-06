@@ -319,7 +319,7 @@ PEG.compiler.emitter = function(ast) {
             '      if (failures[i] === expected) {',
             '        f = 1; break;',
             '    }; if (!f) failures.push(expected);',
-            '    thrown new MatchFailed(current, found)',
+            '    throw new MatchFailed(current, found)',
             '  }',
             '  ',
             '  function safe(f, callback) {',
@@ -357,8 +357,8 @@ PEG.compiler.emitter = function(ast) {
             '    return [ ln, col ];',
             '  }',
             '  function emsg(e) { // error message TODO: make look like "a", "b" or "c"',
-            '    // TODO: e.what stores failed rule name'
-            '    return "Expected "+failures+ " but "+e.found+" found at "+epos(e.pos);',
+            '    // TODO: e.what stores failed rule name',
+            '    return "Expected "+failures+" but "+e.found+" found at "+epos(e.pos);',
             '  }',            
             '  ',
             /* =================== CACHE ======================== */
@@ -413,7 +413,7 @@ PEG.compiler.emitter = function(ast) {
                      // FIXME: make shorter
             '        p = w[i]; if (!res.hasOwnProperty(p)) { res[p] = t[p]; }',
             '      }',
-            '      t = t.__p;'
+            '      t = t.__p;',
             '    }',
             '    return res;',
             '  }',
@@ -451,7 +451,7 @@ PEG.compiler.emitter = function(ast) {
             '  ',
             '  var EOI = \'end of input\';',
             '  ',
-            '  // get current char'
+            '  // get current char',
             '  function cc() { return quote(input.charAt(pos)); }',
             '  ',
             '  var ref = def(inctx); // will call rule inside context',
@@ -470,7 +470,7 @@ PEG.compiler.emitter = function(ast) {
             '         fi < fl; fi++) {',
             '      s.push(fs[fi]());',
             '    }',
-            '    return s;'
+            '    return s;',
             '  }',
             '  seqnc = def(seqnc);',
             '  ',
@@ -596,19 +596,19 @@ PEG.compiler.emitter = function(ast) {
             // TODO: add only those 'any/some/literal...'-function that factually used
             '  ',            
             '  for (rule in rules) {',
-            '    rules[rule] = (function(name, rule) {' 
+            '    rules[rule] = (function(name, rule) {', 
             '      return function() {',
             '        current = name;',
             '        if (cached(name)) return _cache(name);',
             '        return cache_(name, rule());',
-            '      };'
+            '      };',
             '    })(rule, rules[rule]);',
             '  }',
             '  ',
             /* =================== RESULT OBJECT ================ */
             '  /* RESULT OBJECT + PARSE FUNCTION */',
             '  ',
-            '  var g = this;' // FIXME: to set input, ensure that required
+            '  var g = this;', // FIXME: to set input, ensure that required
             '  ',
             '  var result = {',
             '    /*',
@@ -623,7 +623,7 @@ PEG.compiler.emitter = function(ast) {
             '      ',       
             '      // initialize variables',
             '      pos = 0, ilen = input.length, failures = [];',
-            '      g.input = input;'
+            '      g.input = input;',
             '      ',
             '      cache = {};',
             '      ctx = { __p: null, __c: null, __w: [] }, cctx = ctx;',
@@ -645,16 +645,16 @@ PEG.compiler.emitter = function(ast) {
             '      }',
             '      ',
             '      // and execute it',
-            '      var res;'
+            '      var res;',
             '      try {',
             '        res = rules[startRule]();',
             '        if ((pos < ilen) || ',
-            '            (res === null)) failed(EOI, cc());'
+            '            (res === null)) failed(EOI, cc());',
             '      } catch(e) {',
-            '        if (e instanceof MatchFailed) {'
+            '        if (e instanceof MatchFailed) {',
             '          e.message = emsg(e);',
             '        }',
-            '        throw e;'
+            '        throw e;',
             '      }',
             '      ',
             '      return res;',
