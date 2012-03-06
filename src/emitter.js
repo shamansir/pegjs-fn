@@ -302,7 +302,7 @@ PEG.compiler.emitter = function(ast) {
             '      cctx, // { ... }',
             '      current; // \'\'',
             '  ',
-            '  var input, ilen;',
+            '  var /*input, */ilen;',
             '  ',
             /* =================== FAILURES ===================== */
             '  /* FAILURES */',
@@ -318,6 +318,7 @@ PEG.compiler.emitter = function(ast) {
             '    var f; for (var i = failures.length; i--;) {',
             '      if (failures[i] === expected) {',
             '        f = 1; break;',
+            '      }',
             '    }; if (!f) failures.push(expected);',
             '    throw new MatchFailed(current, found)',
             '  }',
@@ -448,8 +449,6 @@ PEG.compiler.emitter = function(ast) {
             /* =================== OPERATORS ==================== */
             '  /* OPERATORS */',
             // FIXME: include only operators that factually used
-            '  ',
-            '  var EOI = \'end of input\';',
             '  ',
             '  // get current char',
             '  function cc() { return quote(input.charAt(pos)); }',
