@@ -58,6 +58,7 @@ module.exports = (function(){
     this.what = what;
     this.found = found;
     this.pos = pos;
+    this.xpos = [-1, -1];
   }
   MatchFailed.prototype = new Error();
   
@@ -106,7 +107,7 @@ module.exports = (function(){
   }
   function emsg(e) { // error message TODO: make look like "a", "b" or "c"
     // TODO: e.what stores failed rule name
-    return "Expected "+failures+" but "+e.found+" found at "+epos(e.pos);
+    return "Expected "+failures+" but "+e.found+" found at "+e.xpos;
   }
   
   /* CACHE */
@@ -516,6 +517,7 @@ module.exports = (function(){
             (res === null)) failed(EOI, cc());
       } catch(e) {
         if (e instanceof MatchFailed) {
+          e.xpos = epos(e.pos);
           e.message = emsg(e);
         }
         throw e;
@@ -525,7 +527,10 @@ module.exports = (function(){
     },
     
     /* Returns the parser source code. */
-    toSource: function() { return this._source; }
+    toSource: function() { return this._source; },
+    
+    /* makes error type accessible outside */
+    MatchFailed: MatchFailed
   };
   
   return result;

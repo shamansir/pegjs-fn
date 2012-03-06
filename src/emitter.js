@@ -311,6 +311,7 @@ PEG.compiler.emitter = function(ast) {
             '    this.what = what;',
             '    this.found = found;',
             '    this.pos = pos;',
+            '    this.xpos = [-1, -1];',
             '  }',
             '  MatchFailed.prototype = new Error();',
             '  ',              
@@ -359,7 +360,7 @@ PEG.compiler.emitter = function(ast) {
             '  }',
             '  function emsg(e) { // error message TODO: make look like "a", "b" or "c"',
             '    // TODO: e.what stores failed rule name',
-            '    return "Expected "+failures+" but "+e.found+" found at "+epos(e.pos);',
+            '    return "Expected "+failures+" but "+e.found+" found at "+e.xpos;',
             '  }',            
             '  ',
             /* =================== CACHE ======================== */
@@ -651,6 +652,7 @@ PEG.compiler.emitter = function(ast) {
             '            (res === null)) failed(EOI, cc());',
             '      } catch(e) {',
             '        if (e instanceof MatchFailed) {',
+            '          e.xpos = epos(e.pos);',
             '          e.message = emsg(e);',
             '        }',
             '        throw e;',
@@ -660,7 +662,10 @@ PEG.compiler.emitter = function(ast) {
             '    },',
             '    ',
             '    /* Returns the parser source code. */',
-            '    toSource: function() { return this._source; }',
+            '    toSource: function() { return this._source; },',
+            '    ',
+            '    /* makes error type accessible outside */',
+            '    MatchFailed: MatchFailed',
             '  };',
             '  ',
             '  return result;',
@@ -901,10 +906,10 @@ PEG.compiler.emitter = function(ast) {
         regexp = '/^['
           + (node.inverted ? '^' : '')
           + map(node.parts, function(part) {
-              return part instanceof Array
-                ? quoteForRegexpClass(part[0])
-                  + '-'
-                  + quoteForRegexpClass(part[1])
+              return (part instanceof Array)
+                ? (quoteForRegexpClass(part[0])
+                   + '-'
+                   + quoteForRegexpClass(part[1]))
                 : quoteForRegexpClass(part);
             }).join('')
           + ']/' + (node.ignoreCase ? 'i' : '');
