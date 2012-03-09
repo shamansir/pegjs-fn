@@ -6,7 +6,8 @@ PEG.compiler = {
   appliedPassNames: [
     "reportMissingRules",
     "reportLeftRecursion",
-    "removeProxyRules"/*,
+    "removeProxyRules",
+    "computeOccurences"/*,
     "computeStackDepths"*/
   ],
 

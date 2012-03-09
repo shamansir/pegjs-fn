@@ -1,6 +1,7 @@
 var qt = require('./quick-test.parser');
 
 try {
+	// console.log('parsed:', qt.parse('oooojqmeeyyeye')); 
 	console.log('parsed:', qt.parse('jqmeeyyeye'));
 } catch(e) {
 	if (e instanceof qt.MatchFailed) {
