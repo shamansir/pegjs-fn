@@ -1,18 +1,31 @@
-PEG.js
-======
+PEG.js IMproved
+===============
 
 PEG.js is a simple parser generator for JavaScript that produces fast parsers with excellent error reporting. You can use it to process complex data or computer languages and build transformers, interpreters, compilers and other tools easily.
+
+_IMproved_ is the modified version of [standard `PEG.js`](http://pegjs.majda.cz) which generates much more human-readable and compact parsers, it is a benefit especially when your grammar has a lot of complex expressions.
+
+(Development is in progress and even this file is in progress)
 
 *NB:* This version is compatible with `node-js` version `0.5.8+`, if you get conflits on `sys`/`util` modules or something like that, ensure you have this version.   
 
 Features
 --------
 
+### Standard PEG.js
+
   * Simple and expressive grammar syntax
   * Integrates both lexical and syntactical analysis
   * Parsers have excellent error reporting out of the box
   * Based on [parsing expression grammar](http://en.wikipedia.org/wiki/Parsing_expression_grammar) formalism — more powerful than traditional LL(*k*) and LR(*k*) parsers
   * Usable [from your browser](http://pegjs.majda.cz/online), from the command line, or via JavaScript API
+
+### PEG.js IMproved
+
+  * Generated parsers are human-readable and compact (see comparison below)
+  * The operators that not used in grammar are not added to parser code
+  * `chunk` variable is accessible to actions, it stores current chunk of input and its start and end positions
+  * The context for actions variables is strict and given in an object format to the action code
 
 Getting Started
 ---------------

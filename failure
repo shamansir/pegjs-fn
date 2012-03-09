@@ -1,0 +1,226 @@
+       * All code following this comment (including called functions) must
+       * handle these states.
+       */
+      if (result === null || pos !== input.length) {
+        var errorPosition = computeErrorPosition();
+        throw new this.SyntaxError(
+          buildErrorMessage(),
+          errorPosition.line,
+          errorPosition.column
+        var result0, result1, result2, result3;
+        var pos0, pos1;
+        
+        pos0 = pos;
+        if (input.charCodeAt(pos) === 101) {
+          result0 = "e";
+          pos += 1;
+        } else {
+          result0 = null;
+          if (reportFailures === 0) {
+            matchFailed("\"e\"");
+          }
+        }
+        if (result0 !== null) {
+          if (input.charCodeAt(pos) === 100) {
+            result1 = "d";
+            pos += 1;
+          } else {
+            result1 = null;
+            if (reportFailures === 0) {
+              matchFailed("\"d\"");
+            }
+          }
+          if (result1 !== null) {
+            pos1 = pos;
+            result2 = [];
+            if (/^[bc]/.test(input.charAt(pos))) {
+                    result3 = input.charAt(pos);
+              pos++;
+            } else {
+              result3 = null;
+              if (reportFailures === 0) {
+                matchFailed("[bc]");
+              }
+            }
+              }
+            }
+            while (result3 !== null) {
+              result2.push(result3);
+              if (/^[bc]/.test(input.charAt(pos))) {
+                result3 = input.charAt(pos);
+                pos++;
+              } else {
+                result3 = null;
+                if (reportFailures === 0) {
+                  matchFailed("[bc]");
+                }
+              }
+            }
+            _chunk.pos = pos1;
+                  _chunk.end = pos;
+            _chunk.match = input.substring(pos1,pos);
+            i  f (result2 !== null) {
+              result2 = (function(_chunk) { return _chunk.end; })(_chunk);
+            }
+            if (result2 === null) {
+              pos = pos1;
+            }
+            if (result2 !== null) {
+
+
+function parse_start() {
+  var cacheKey = "start@" + pos;
+  var cachedResult = cache[cacheKey];
+  if (cachedResult) {
+    pos = cachedResult.nextPos;
+    return cachedResult.result;
+  }
+  
+  var result0, result1, result2, result3;
+  var pos0, pos1, pos2;
+  
+  pos0 = pos;
+  if (input.charCodeAt(pos) === 97) {
+  result0 = "a";
+    pos += 1;
+  } else {
+    result0 = null;
+    if (reportFailures === 0) {
+      matchFailed("\"a\"");
+    }
+  }
+  if (result0 !== null) {
+    pos1 = pos;
+    pos2 = pos;
+    if (input.charCodeAt(pos) === 98) {
+    result1 = "b";
+      pos += 1;
+    } else {
+      result1 = null;
+      if (reportFailures === 0) {
+        matchFailed("\"b\"");
+      }
+    }
+    if (result1 !== null) {
+      if (input.charCodeAt(pos) === 99) {
+      result2 = "c";
+          pos += 1;
+      } else {
+        result2 = null;
+        if (reportFailures === 0) {
+          matchFailed("\"c\"");
+        }
+      }
+      if (result2 !== null) {
+        if (input.charCodeAt(pos) === 100) {
+        result3 = "d";
+          pos += 1;
+        } else {
+          result3 = null;
+          if (reportFailures === 0) {
+            matchFailed("\"d\"");
+          }
+        }
+        if (result3 !== null) {
+          result1 = [result1, result2, result3];
+        } else {
+          result1 = null;
+          pos = pos2;
+        }
+      } else {
+        result1 = null;
+        pos = pos2;
+      }
+    } else {
+      result1 = null;
+      pos = pos2;
+    }
+    _chunk.pos = pos1;
+    _chunk.end = pos;
+    _chunk.match = input.substring(pos1,pos);
+    if (result1 !== null) {
+      result1 = (function(b, d, _chunk) { return [arguments.length, b, d]; })(result1[0], result1[2], _chunk);
+    }
+    i  f (result1 === null) {
+      pos = pos1;
+    }
+    if (result1 !== null) {
+      if (input.charCodeAt(pos) === 101) {
+      result2 = "e";
+        pos += 1;
+      } else {
+        result2 = null;
+        if (reportFailures === 0) {
+          matchFailed("\"e\"");
+        }
+      }
+      if (result2 !== null) {
+        result0 = [result0, result1, result2];
+      } else {
+        result0 = null;
+        pos = pos0;
+      }
+    } else {
+      result0 = null;
+      pos = pos0;
+    }
+  } else {
+    result0 = null;
+    pos = pos0;
+  }
+  
+  cache[cacheKey] = {
+    nextPos: pos,
+    result:  result0
+  };
+  return result0;
+}
+
+
+            
+
+result0 = [];
+if (/^[a-c]/.test(input.charAt(pos))) {
+  result1 = input.charAt(pos);
+  pos++;
+} else {
+  result1 = null;
+  if (reportFailures === 0) {
+    matchFailed("[a-c]");
+  }
+}
+while (result1 !== null) {
+  result0.push(result1);
+  if (/^[a-c]/.test(input.charAt(pos))) {
+    result1 = input.charAt(pos);
+    pos++;
+  } else {
+    result1 = null;
+    if (reportFailures === 0) {
+      matchFailed("[a-c]");
+    }
+  }
+}
+
+result2 = [];
+if (/^[bc]/.test(input.charAt(pos))) {
+  result3 = input.charAt(pos);
+  pos++;
+} else {
+  result3 = null;
+  if (reportFailures === 0) {
+    matchFailed("[bc]");
+  }
+}
+while (result3 !== null) {
+  result2.push(result3);
+  if (/^[bc]/.test(input.charAt(pos))) {
+    result3 = input.charAt(pos);
+    pos++;
+  } else {
+    result3 = null;
+    if (reportFailures === 0) {
+      matchFailed("[bc]");
+    }
+  }
+}
