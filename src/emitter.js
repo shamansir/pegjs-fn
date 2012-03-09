@@ -386,7 +386,7 @@ PEG.compiler.emitter = function(ast) {
             '      "result": result',
             '    };', 
             '    cache[name+"@"+pos] = res;',
-            '    return res;',
+            '    return res.result;',
             '  }',
             '  ',
             /* =================== CONTEXT ====================== */
@@ -633,7 +633,7 @@ PEG.compiler.emitter = function(ast) {
             '        // load object returned from initializer into zero-level of context',
             '        var inj = initialize();',
             '        for (var p in inj) save (p, inj[p]);',
-            '      #end', 
+            '      #end',
             '      ',
             '      // find start rule',
             '      if (startRule !== undefined) {',
@@ -673,9 +673,9 @@ PEG.compiler.emitter = function(ast) {
           ],
           rule: [
             'rules.#{node.name} = function() {',
-            '  return ',
+            '  return (',
             '    #block code',
-            '  ();',
+            '  ());',
             '}', // FIXME: displayName!
             '#if node.displayName',
             '  names.#{node.name}=#{string(node.displayName)};',
