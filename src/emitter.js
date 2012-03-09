@@ -742,7 +742,7 @@ PEG.compiler.emitter = function(ast) {
           action: [
             'action(',
             '  #block expression',
-            '  function(x) {',            
+            '  function(ctx) {',            
             '    #block node.code', 
             '  }',
             ')'       
