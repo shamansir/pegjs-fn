@@ -368,25 +368,22 @@ PEG.compiler.emitter = function(ast) {
             '  /* CACHE */',                    
             '  ',
             '  function cached(name) {',
-            '    return cache.hasOwnProperty(name+"@"+pos);',
+            '    return (cache.hasOwnProperty(name+"@"+pos)',
+            '           ? (name+"@"+pos) : 0);',
             '  }',
             '  ',
-            '  /* must be used only next to `cached` check in a way like:',
-            '   * if (cached(name)) return _cache(name); */',
-            '  function _cache(name) { // load out of cache',
-            '    var cached = cache[name+"@"+pos];',
+            '  function _cache(key) { // load out of cache',
+            '    var cached = cache[key];',
             '    pos = cached.next',
             '    return cached.result;', 
             '  }',
-            '  ',             
-            '  /* must be used only next to `cached` check in a way like:',
-            '   * if (!cached(name)) return cache_(name, rule()); */',
-            '  function cache_(name, result) { // store in cache',
+            '  ',
+            '  function cache_(key, result) { // store in cache',
             '    var res = {',
-            '      "next": pos,', // TODO: what 'next' means?
+            '      "next": pos,',
             '      "result": result',
             '    };', 
-            '    cache[name+"@"+pos] = res;',
+            '    cache[key] = res;',
             '    return res.result;',
             '  }',
             '  ',
@@ -528,7 +525,7 @@ PEG.compiler.emitter = function(ast) {
             '    label = def(label);',
             '  ',
             '  #end',
-            // zero_or_more ======
+            // one_or_more ======
             '  #if stats.one_or_more',
             '    function some(f) {',
             '      return [f()].concat(any(f)());',
@@ -536,8 +533,8 @@ PEG.compiler.emitter = function(ast) {
             '    some = def(some);',
             '  ',
             '  #end',
-            // one_or_more =======
-            '  #if stats.one_or_more || stats.zero_or_more',
+            // zero_or_more =======
+            '  #if stats.zero_or_more || stats.one_or_more',
             '    function any(f) {',
             '      var s = [],',
             '          missed = 0,',
@@ -651,13 +648,14 @@ PEG.compiler.emitter = function(ast) {
             /* =================== RULES WRAPPER ================ */
             '  /* RULES WRAPPER */',
             // TODO: add only those 'any/some/literal...'-function that factually used
-            '  ',            
+            '  ',
+            '  var ckey; // cache key',
             '  for (rule in rules) {',
             '    rules[rule] = (function(name, rule) {', 
             '      return function() {',
             '        current = name;',
-            '        if (cached(name)) return _cache(name);',
-            '        return cache_(name, rule());',
+            '        if (ckey = cached(name)) return _cache(ckey);',
+            '        return cache_(ckey, rule());',
             '      };',
             '    })(rule, rules[rule]);',
             '  }',
@@ -848,8 +846,6 @@ PEG.compiler.emitter = function(ast) {
       for (var name in node.rules) {
         rulesDefs.push(emit(node.rules[name]));
       }
-
-      console.log(node.stats);
 
       return fill("grammar", {
         initializer:    initializer,
