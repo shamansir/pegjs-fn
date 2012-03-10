@@ -468,8 +468,8 @@ PEG.compiler.emitter = function(ast) {
             '      });',
             '    }',
             '    action = def(action);',
-            '  #end',
             '  ',
+            '  #end',
             // sequence ==========
             '  #if stats.sequence',
             '    function seqnc(/*f...*/) {',
@@ -482,8 +482,8 @@ PEG.compiler.emitter = function(ast) {
             '      return s;',
             '    }',
             '    seqnc = def(seqnc);',
-            '  #end',
             '  ',
+            '  #end',
             // choice ============
             '  #if stats.choice',
             '    function choice(/*f...*/) {',
@@ -502,8 +502,8 @@ PEG.compiler.emitter = function(ast) {
             '      throw my_e;',
             '    }',
             '    choice = def(choice);',
-            '  #end',
             '  ',
+            '  #end',
             // match =============
             '  #if stats.literal',
             '    function match(str) {',
@@ -518,24 +518,24 @@ PEG.compiler.emitter = function(ast) {
             '      failed(quote(str), cc());',     
             '    }',
             '    match = def(match);',
-            '  #end',
             '  ',
+            '  #end',
             // labeled ===========
             '  #if stats.labeled',
             '    function label(lbl, f) {',
             '      return save(lbl, f());',
             '    }',
             '    label = def(label);',
-            '  #end',
             '  ',
+            '  #end',
             // zero_or_more ======
             '  #if stats.one_or_more',
             '    function some(f) {',
             '      return [f()].concat(any(f)());',
             '    }',
             '    some = def(some);',
-            '  #end',
             '  ',
+            '  #end',
             // one_or_more =======
             '  #if stats.one_or_more || stats.zero_or_more',
             '    function any(f) {',
@@ -549,21 +549,21 @@ PEG.compiler.emitter = function(ast) {
             '      return s;',
             '    }',
             '    any = def(any);',
-            '  #end',
             '  ',
+            '  #end',
             // optional ==========
-            /*'  #if stats.optional',
+            '  #if stats.optional',
             '    function maybe(f) {',
             '      var missed = 0,',
             '          res = safe(f, function() {',
             '        missed = 1;',
             '      });',
-            '      if (missed) return \'\';'
+            '      if (missed) return \'\';',
             '      return res;',
             '    }',
             '    maybe = def(maybe);',
-            '  #end',*/
             '  ',            
+            '  #end',  
             // semantic_and =======
             '  #if stats.semantic_and',
             '    function pre(code) {',
@@ -571,8 +571,8 @@ PEG.compiler.emitter = function(ast) {
             '                        : failed(cc(), EOI);',
             '    }',
             '    pre = def(pre);',
-            '  #end',
             '  ',
+            '  #end',
             // semantic_not =======
             '  #if stats.semantic_not',
             '    function xpre(code) {',
@@ -580,8 +580,8 @@ PEG.compiler.emitter = function(ast) {
             '                          : \'\';',
             '    }',
             '    xpre = def(xpre);',
-            '  #end',
             '  ',
+            '  #end',
             // simple_and ==========
             '  #if stats.simple_and',
             '    function and(f) {',
@@ -590,8 +590,8 @@ PEG.compiler.emitter = function(ast) {
             '      return \'\';',
             '    }',
             '    and = def(and);',
-            '  #end',
             '  ',
+            '  #end',
             // simple_not ==========
             '  #if stats.simple_not',
             '    function not(f) {',
@@ -604,8 +604,8 @@ PEG.compiler.emitter = function(ast) {
             '      failed(EOI, cc());',
             '    }',
             '    not = def(not);',
-            '  #end',
             '  ',
+            '  #end',
             // klass || literal_re
             '  #if stats.klass || stats.literal_re',
             '    function re(rx, desc) {', // == imatch
@@ -617,8 +617,8 @@ PEG.compiler.emitter = function(ast) {
             '      } else failed(desc, cc());',
             '    }',
             '    re = def(re);',
-            '  #end',
             '  ',
+            '  #end',
             // any
             '  #if stats.any',
             '    function ch() { // char',
@@ -626,8 +626,8 @@ PEG.compiler.emitter = function(ast) {
             '      return input[pos++];',
             '    }',
             '    ch = def(ch);',
-            '  #end',
             '  ',
+            '  #end',
             /* =================== INITIALIZER ================== */
             '  /* INITIALIZER */',
             '  ',
@@ -635,8 +635,8 @@ PEG.compiler.emitter = function(ast) {
             '    function initialize() {',
             '      #block initializer',           
             '    }',
-            '  #end',
             '  ',
+            '  #end',
             /* =================== RULES DEFINITIONS ============ */
             '  /* RULES DEFINITIONS */',
             '  ',
@@ -848,6 +848,8 @@ PEG.compiler.emitter = function(ast) {
       for (var name in node.rules) {
         rulesDefs.push(emit(node.rules[name]));
       }
+
+      console.log(node.stats);
 
       return fill("grammar", {
         initializer:    initializer,
