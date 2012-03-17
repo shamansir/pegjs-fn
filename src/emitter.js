@@ -361,7 +361,8 @@ PEG.compiler.emitter = function(ast) {
             '  function emsg(e) {',
             '    return \'Stopped at \'+e.what+\': \'+',
             '           \'Expected \'+failures.slice(0,-1).join(\', \')+\' \'+',
-            '           \'or \'+failures.slice(-1)+\', but \'+e.found+\' found at \'+e.xpos;',
+            '           \'or \'+failures.slice(-1)+\', but \'+e.found+\' found\'', // \'+
+            //'         \'at \'+e.xpos.join(\':\');',
             '  }',            
             '  ',
             /* =================== CACHE ======================== */
@@ -670,7 +671,7 @@ PEG.compiler.emitter = function(ast) {
             '     * Parses the input with a generated parser. If the parsing is successfull,',
             '     * returns a value explicitly or implicitly specified by the grammar from',
             '     * which the parser was generated (see |PEG.buildParser|). If the parsing is',
-            '     * unsuccessful, throws |PEG.parser.SyntaxError| describing the error.',
+            '     * unsuccessful, throws |PEG.parser.MatchFailed| describing the error.',
             '     */',
             /* =================== PARSE FUNCTION =============== */
             '    parse: function(input, startRule) {',
