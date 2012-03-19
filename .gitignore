@@ -1,2 +1,5 @@
 lib/*
 dist/*
+test/quick-test.parser.js
+#test/quick-test.js (TEMPORARY)
+test/temp.js

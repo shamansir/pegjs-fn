@@ -216,9 +216,9 @@ test("removes proxy rules", function() {
   }
 });
 
-test("computes stack depths", function() {
+/* test("computes stack depths", function() {
   var cases = [
-    /* Choice */
+    // Choice
     {
       grammar:          'start = "a" / "b" / "c"',
       resultStackDepth: 1,
@@ -235,7 +235,7 @@ test("computes stack depths", function() {
       posStackDepth:    1
     },
 
-    /* Sequence */
+    // Sequence
     {
       grammar:          'start = ',
       resultStackDepth: 1,
@@ -282,7 +282,7 @@ test("computes stack depths", function() {
       posStackDepth:    2
     },
 
-    /* Others */
+    // Others
     { grammar: 'start = label:"a"',    resultStackDepth: 1, posStackDepth: 0 },
     { grammar: 'start = &"a"',         resultStackDepth: 1, posStackDepth: 1 },
     { grammar: 'start = !"a"',         resultStackDepth: 1, posStackDepth: 1 },
@@ -305,6 +305,6 @@ test("computes stack depths", function() {
     deepEqual(ast.rules["start"].resultStackDepth, cases[i].resultStackDepth);
     deepEqual(ast.rules["start"].posStackDepth,    cases[i].posStackDepth);
   }
-});
+}); */
 
 })();
