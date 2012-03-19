@@ -419,6 +419,7 @@ PEG.compiler.emitter = function(ast) {
             '    return res;',
             '  }',
             '  function ctx_(key, val) { // push to context',
+            '    //if (typeof key === \'object\') ctx', // no, will recurse in objects
             '    cctx[key] = val;',
             '    cctx.__w.push(key);',
             '    return val;',
@@ -691,7 +692,7 @@ PEG.compiler.emitter = function(ast) {
             '      ',
             '      #if initializerDef',
             '        // load object returned from initializer into zero-level of context',
-            '        ctxo_(initialize());',
+            '        initialize();',
             '      #end',
             '      ',
             '      // find start rule',

@@ -195,12 +195,12 @@ test("actions", function() {
 
 test("initializer", function() {
   var variableInActionParser = PEG.buildParser(
-    '{ return { a: 42 }; }; start = "a" { return ctx.a; }'
+    '{ ctx_({ a: 42 }); }; start = "a" { return ctx.a; }'
   );
   parses(variableInActionParser, "a", 42);
 
   var functionInActionParser = PEG.buildParser(
-    '{ function f() { return 42; } }; start = "a" { return ctx.f(); }'
+    '{ ctx_(function f() { return 42; } }; start = "a" { return ctx.f(); }'
   );
   parses(functionInActionParser, "a", 42);
 
