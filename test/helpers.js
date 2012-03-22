@@ -19,6 +19,15 @@ doesNotParseWithMessage = function(parser, input, message) {
   );
 };
 
+doesNotParseWithSyntaxError = function(parser, input, message) {
+  raises(
+    function() { parser.parse(input); },
+    function(e) {
+      return e instanceof parser.SyntaxError && e.message === message;
+    }
+  );
+};
+
 doesNotParseWithPos = function(parser, input, line, column) {
   raises(
     function() { parser.parse(input); },
@@ -38,6 +47,12 @@ parserDoesNotParse = function(input) {
   doesNotParse(PEG.parser, input);
 };
 
-parserDoesNotParseWithMessage = function(input, message) {
+/* parserDoesNotParseWithMessage = function(input, message) {
   doesNotParseWithMessage(PEG.parser, input, message);
+}; */
+
+parserDoesNotParseWithSyntaxError = function(input, message) {
+  doesNotParseWithSyntaxError(PEG.parser, input, message);
 };
+
+

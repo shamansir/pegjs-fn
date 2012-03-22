@@ -438,7 +438,7 @@ test("parses classCharacterRange", function() {
   parserParses("start = [a-d]", classGrammar(false, [["a", "d"]], "[a-d]"));
   parserParses("start = [a-a]", classGrammar(false, [["a", "a"]], "[a-a]"));
   parserDoesNotParse("start = [b-a]");
-  parserDoesNotParseWithMessage(
+  parserDoesNotParseWithSyntaxError(
     "start = [b-a]",
     "Invalid character range: b-a."
   );

@@ -364,7 +364,12 @@ PEG.compiler.emitter = function(ast) {
             '           \'Expected \'+failures.slice(0,-1).join(\', \')+\' \'+',
             '           \'or \'+failures.slice(-1)+\', but \'+e.found+\' found\'', // \'+
             //'         \'at \'+e.xpos.join(\':\');',
-            '  }',            
+            '  }',
+            '  ',
+            '  function SyntaxError(msg) { // may be thrown from parser',
+            '    this.message = msg;',
+            '  }',
+            '  SyntaxError.prototype = new Error();',
             '  ',
             /* =================== CACHE ======================== */
             '  /* CACHE */',                    
@@ -711,7 +716,8 @@ PEG.compiler.emitter = function(ast) {
             '    toSource: function() { return this._source; },',
             '    ',
             '    /* makes error type accessible outside */',
-            '    MatchFailed: MatchFailed',
+            '    MatchFailed: MatchFailed,',
+            '    SyntaxError: SyntaxError',
             '  };',
             '  ',
             '  return result;',
