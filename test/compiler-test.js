@@ -195,32 +195,32 @@ test("actions", function() {
 
 test("initializer", function() {
   var variableInActionParser = PEG.buildParser(
-    '{ ctx_({ a: 42 }); }; start = "a" { return ctx.a; }'
+    '{ ctx.a = 42 }; start = "a" { return ctx.a; }'
   );
   parses(variableInActionParser, "a", 42);
 
   var functionInActionParser = PEG.buildParser(
-    '{ ctx_(function f() { return 42; } }; start = "a" { return ctx.f(); }'
+    '{ ctx.f = function() { return 42; } }; start = "a" { return ctx.f(); }'
   );
   parses(functionInActionParser, "a", 42);
 
   var variableInSemanticAndParser = PEG.buildParser(
-    '{ a = 42; }; start = "a" &{ return a === 42; }'
+    '{ ctx.a = 42; }; start = "a" &{ return a === 42; }'
   );
   parses(variableInSemanticAndParser, "a", ["a", ""]);
 
   var functionInSemanticAndParser = PEG.buildParser(
-    '{ return { f: function() { return 42; } }; start = "a" &{ return ctx.f() === 42; }'
+    '{ ctx.f = function() { return 42; } }; start = "a" &{ return ctx.f() === 42; }'
   );
   parses(functionInSemanticAndParser, "a", ["a", ""]);
 
   var variableInSemanticNotParser = PEG.buildParser(
-    '{ return { a: 42; } }; start = "a" !{ return ctx.a !== 42; }'
+    '{ ctx.a = 42; }; start = "a" !{ return ctx.a !== 42; }'
   );
   parses(variableInSemanticNotParser, "a", ["a", ""]);
 
   var functionInSemanticNotParser = PEG.buildParser(
-    '{ return { f: function() { return 42; } }; start = "a" !{ return ctx.f() !== 42; }'
+    '{ ctx.f = function() { return 42; } }; start = "a" !{ return ctx.f() !== 42; }'
   );
   parses(functionInSemanticNotParser, "a", ["a", ""]);
 
