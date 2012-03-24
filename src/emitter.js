@@ -746,7 +746,9 @@ PEG.compiler.emitter = function(ast) {
             '  #for expression in beforeLast',
             '    #block expression',
             '  #end',
-            '  #block last',
+            '  #if last !== null',
+            '    #block last',
+            '  #end',
             ')'
           ],
           labeled: [
@@ -888,7 +890,9 @@ PEG.compiler.emitter = function(ast) {
                                               // comma here is not ok
       };
 
-      var last = emit(elms[elms.length - 1]);
+      var last = (elms.length > 0)
+                 ? emit(elms[elms.length - 1])
+                 : null;
 
       return fill("sequence", { beforeLast: beforeLast, 
                                 last: last });
