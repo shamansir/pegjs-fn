@@ -773,12 +773,12 @@ PEG.compiler.emitter = function(ast) {
             ')'
           ],
           semantic_and: [
-            'pre(function() {',
+            'pre(function(ctx) {',
             '  #block code',  
             '})'
           ],
           semantic_not: [
-            'xpre(function() {',
+            'xpre(function(ctx) {',
             '  #block code',  
             '})'
           ],

@@ -91,7 +91,7 @@ test("semantic not", function() {
   doesNotParse(evenParser, "aaa");
 
   var evenParserWithAction = PEG.buildParser(
-    'start = as:"a"* !{ return as.length % 2; } "b" { return ctx.as; }');
+    'start = as:"a"* !{ return ctx.as.length % 2; } "b" { return ctx.as; }');
   parses(evenParserWithAction, "aab", ["a", "a"]);
   doesNotParse(evenParserWithAction, "aaab");
 });
