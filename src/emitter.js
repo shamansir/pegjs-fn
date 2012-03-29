@@ -360,9 +360,12 @@ PEG.compiler.emitter = function(ast) {
             '    return [ ln, col ];',
             '  }',
             '  function emsg(e) {',
-            '    return \'Stopped at \'+e.what+\': \'+',
-            '           \'Expected \'+failures.slice(0,-1).join(\', \')+\' \'+',
-            '           \'or \'+failures.slice(-1)+\', but \'+e.found+\' found\'', // \'+
+            '    return \'Stopped at \'+e.what+\': Expected \'+',
+            '           ((failures.length > 1)',
+            '            ? (failures.slice(0,-1).join(\', \')+\' \'+',
+            '               \'or \'+failures.slice(-1))',
+            '            : failures[0]) +',
+            '           \', but \'+e.found+\' found\';', // \'+
             //'         \'at \'+e.xpos.join(\':\');',
             '  }',
             '  ',

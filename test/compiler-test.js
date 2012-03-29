@@ -117,37 +117,60 @@ test("one or more expressions", function() {
 });
 
 test("actions", function() {
-  var sys_args = 1;
 
   var singleElementUnlabeledParser = PEG.buildParser(
-    'start = "a" { return arguments.length; }'
+    'start = "a" { return ctx; }'
   );
-  parses(singleElementUnlabeledParser, "a", sys_args);
+  parsesToContextTree(
+    singleElementUnlabeledParser, "a", 
+    [{}, {}] // [ initializer, start ]
+  );
 
   var singleElementLabeledParser = PEG.buildParser(
-    'start = a:"a" { return [arguments.length, ctx.a]; }'
+    'start = a:"a" { return ctx; }'
   );
-  parses(singleElementLabeledParser, "a", [sys_args + 1, "a"]);
+  parsesToContextTree(
+    singleElementLabeledParser, "a", 
+    [{}, {a:'a'}] // [ initializer, start ]
+  );
 
   var multiElementUnlabeledParser = PEG.buildParser(
-    'start = "a" "b" "c" { return arguments.length; }'
+    'start = "a" "b" "c" { return ctx; }'
   );
-  parses(multiElementUnlabeledParser, "abc", sys_args);
+  parsesToContextTree(
+    multiElementUnlabeledParser, "abc", 
+    [{}, {}] // [ initializer, start ]
+  );
 
   var multiElementLabeledParser = PEG.buildParser(
-    'start = a:"a" "b" c:"c" { return [arguments.length, ctx.a, ctx.c]; }'
+    'start = a:"a" "b" c:"c" { return ctx; }'
   );
-  parses(multiElementLabeledParser, "abc", [sys_args + 2, "a", "c"]);
+  parsesToContextTree(
+    multiElementLabeledParser, "abc", 
+    [{}, {a:'a', c:'c'}] // [ initializer, start ]
+  );
 
   var innerElementsUnlabeledParser = PEG.buildParser(
-    'start = "a" ("b" "c" "d" { return arguments.length; }) "e"'
+    'start = "a" ("b" "c" "d") "e" { return ctx; }'
   );
-  parses(innerElementsUnlabeledParser, "abcde", ["a", sys_args, "e"]);
+  parsesToContextTree(
+    innerElementsUnlabeledParser, "abcde", 
+    [{}, {}] // [ initializer, start ]
+  );
 
   var innerElementsLabeledParser = PEG.buildParser(
-    'start = "a" (b:"b" "c" d:"d" { return [arguments.length, ctx.b, ctx.d]; }) "e"'
+    'start = a:"a" d:("b" "c" "d" {return [ "foo-"+ctx.a, ctx.d ];}) "e" { return ctx.d; }'
   );
-  parses(innerElementsLabeledParser, "abcde", ["a", [sys_args + 2, "b", "d"], "e"]);
+  parses(innerElementsLabeledParser, "abcde", ['foo-a', undefined]);
+
+  var innerElementsLabeledParserByCtx = PEG.buildParser(
+    'start = a:"a" d:("b" c:"c" f:"d" { return "bcd"; }) "e" { return ctx; }'
+  );
+  parsesToContextTree(
+    innerElementsLabeledParserByCtx, "abcde", 
+    [{}, {a:'a', d:'bcd'}, {c:'c', f:'d'}]
+     // [ initializer, start, action ]
+  );
 
   /*
    * Test that the parsing position returns after successfull parsing of the
