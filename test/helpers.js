@@ -24,7 +24,13 @@ doesNotParseWithMessage = function(parser, input, message) {
   raises(
     function() { parser.parse(input); },
     function(e) {
-      return e instanceof parser.MatchFailed && e.message === message;
+      if (e instanceof parser.MatchFailed) {
+        //equal(e.message, message);
+        return (e.message === message);
+      } else {
+        ok(false, 'Raised unexpected error');
+        return false;
+      }
     }
   );
 };

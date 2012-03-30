@@ -236,7 +236,7 @@ test("initializer", function() {
   parses(functionInActionParser, "a", 42);
 
   var variableInSemanticAndParser = PEG.buildParser(
-    '{ ctx.a = 42; }; start = "a" &{ return a === 42; }'
+    '{ ctx.a = 42; }; start = "a" &{ return ctx.a === 42; }'
   );
   parses(variableInSemanticAndParser, "a", ["a", ""]);
 
@@ -418,51 +418,51 @@ test("error messages", function() {
   doesNotParseWithMessage(
     literalParser,
     "",
-    'Expected "abcd" but end of input found.'
+    'Expected "abcd", but end of input found.'
   );
   doesNotParseWithMessage(
     literalParser,
     "efgh",
-    'Expected "abcd" but "e" found.'
+    'Expected "abcd", but "e" found.'
   );
   doesNotParseWithMessage(
     literalParser,
     "abcde",
-    'Expected end of input but "e" found.'
+    'Expected end of input, but "e" found.'
   );
 
   var classParser = PEG.buildParser('start = [a-d]');
   doesNotParseWithMessage(
     classParser,
     "",
-    'Expected [a-d] but end of input found.'
+    'Expected [a-d], but end of input found.'
   );
   var negativeClassParser = PEG.buildParser('start = [^a-d]');
   doesNotParseWithMessage(
     negativeClassParser,
     "",
-    'Expected [^a-d] but end of input found.'
+    'Expected [^a-d], but end of input found.'
   );
 
   var anyParser = PEG.buildParser('start = .');
   doesNotParseWithMessage(
     anyParser,
     "",
-    'Expected any character but end of input found.'
+    'Expected any character, but end of input found.'
   );
 
   var namedRuleWithLiteralParser = PEG.buildParser('start "digit" = [0-9]');
   doesNotParseWithMessage(
     namedRuleWithLiteralParser,
     "a",
-    'Expected digit but "a" found.'
+    'Expected digit, but "a" found.'
   );
 
   var namedRuleWithAnyParser = PEG.buildParser('start "whatever" = .');
   doesNotParseWithMessage(
     namedRuleWithAnyParser,
     "",
-    'Expected whatever but end of input found.'
+    'Expected whatever, but end of input found.'
   );
 
   var namedRuleWithNamedRuleParser = PEG.buildParser([
@@ -471,57 +471,58 @@ test("error messages", function() {
   ].join("\n"));
   doesNotParseWithMessage(
     namedRuleWithNamedRuleParser,
-    "",
-    'Expected digits but end of input found.'
+    "", // NB: differs from original peg.js, I expect failed rule to be written
+    'Expected digit, but end of input found.'
   );
 
   var choiceParser1 = PEG.buildParser('start = "a" / "b" / "c"');
   doesNotParseWithMessage(
     choiceParser1,
     "def",
-    'Expected "a", "b" or "c" but "d" found.'
+    'Expected "a", "b" or "c", but "d" found.'
   );
 
   var choiceParser2 = PEG.buildParser('start = "a" "b" "c" / "a"');
   doesNotParseWithMessage(
     choiceParser2,
     "abd",
-    'Expected "c" but "d" found.'
+    'Expected "c", but "d" found.'
   );
 
   var simpleNotParser = PEG.buildParser('start = !"a" "b"');
   doesNotParseWithMessage(
     simpleNotParser,
     "c",
-    'Expected "b" but "c" found.'
+    'Expected "b", but "c" found.'
   );
 
   var simpleAndParser = PEG.buildParser('start = &"a" [a-b]');
   doesNotParseWithMessage(
     simpleAndParser,
     "c",
-    'Expected end of input but "c" found.'
+    'Expected end of input, but "c" found.'
   );
 
   var emptyParser = PEG.buildParser('start = ');
   doesNotParseWithMessage(
     emptyParser,
     "something",
-    'Expected end of input but "s" found.'
+    'Expected end of input, but "s" found.'
   );
 
   var duplicateErrorParser = PEG.buildParser('start = "a" / "a"');
   doesNotParseWithMessage(
     duplicateErrorParser,
     "",
-    'Expected "a" but end of input found.'
+    'Expected "a", but end of input found.'
   );
 
   var unsortedErrorsParser = PEG.buildParser('start = "b" / "a"');
   doesNotParseWithMessage(
     unsortedErrorsParser,
-    "",
-    'Expected "a" or "b" but end of input found.'
+    "", // NB: differs from original peg.js, I refused sorting errors 
+        //     to improve parser simplicity / speed.
+    'Expected "b" or "a", but end of input found.'
   );
 });
 
