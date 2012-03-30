@@ -186,32 +186,32 @@ test("actions", function() {
   doesNotParse(notAMatchParser, "b");
 
   var actionKnowsPositionParser = PEG.buildParser(
-    'start = [a-c]* { return _chunk.pos; }'
+    'start = [a-c]* { return chunk.pos; }'
   );
   parses(actionKnowsPositionParser, "abc", 0);
 
   var actionKnowsEndPositionParser = PEG.buildParser(
-    'start = "a" "b" [c-e]* { return _chunk.end; }'
+    'start = "a" "b" [c-e]* { return chunk.end; }'
   );
   parses(actionKnowsEndPositionParser, "abcde", 5);
 
   var actionKnowsMatchParser = PEG.buildParser(
-    'start = [a-d]* { return _chunk.match; }'
+    'start = [a-d]* { return chunk.match; }'
   );
   parses(actionKnowsMatchParser, "abcd", "abcd");
 
   var actionKnowsPositionInsideParser = PEG.buildParser(
-    'start = [a-c]* ([d-f]* { return _chunk.pos; })'
+    'start = [a-c]* ([d-f]* { return chunk.pos; })'
   );
   parses(actionKnowsPositionInsideParser, "acdef", [["a", "c"], 2]);
 
   var actionKnowsEndPositionInsideParser = PEG.buildParser(
-    'start = "e" "d" ([bc]* { return _chunk.end; }) "a"'
+    'start = "e" "d" ([bc]* { return chunk.end; }) "a"'
   );
   parses(actionKnowsEndPositionInsideParser, "edcba", ["e", "d", 4, "a"]);
 
   var actionKnowsMatchInsideParser = PEG.buildParser(
-    'start = [vad]* ([tier]* { return _chunk.match; }) "s" [temn]*'
+    'start = [vad]* ([tier]* { return chunk.match; }) "s" [temn]*'
   );
   parses(actionKnowsMatchInsideParser, "advertisment", [["a","d","v"], "erti", "s", ["m","e","n","t"]]);
 });
@@ -221,6 +221,14 @@ test("initializer", function() {
     '{ ctx.a = 42 }; start = "a" { return ctx.a; }'
   );
   parses(variableInActionParser, "a", 42);
+
+  var variableInInitializerContextChecker = PEG.buildParser(
+    '{ ctx.a = 42 }; start = "a" { return ctx; }'
+  );    
+  parsesToContextTree(
+    variableInInitializerContextChecker, "a", 
+    [{'a':42}, {}] // [ initializer, start ]
+  );
 
   var functionInActionParser = PEG.buildParser(
     '{ ctx.f = function() { return 42; } }; start = "a" { return ctx.f(); }'
