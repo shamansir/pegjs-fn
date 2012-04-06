@@ -489,6 +489,30 @@ test("error messages", function() {
     'Expected "c", but "d" found.'
   );
 
+  var choiceParser3 = PEG.buildParser('start = ("a" { return null; }) "b" "c" / "a"');
+  doesNotParseWithMessage(
+    choiceParser3,
+    "abd",
+    'Expected end of input, but "b" found.'
+  );
+
+  var choiceParser4 = PEG.buildParser('start = "a" "b" ("c" { return null; }) / "a" "b" "w"');
+  doesNotParseWithMessage(
+    choiceParser4,
+    "abd",
+    'Expected "c" or "w", but "d" found.'
+  );
+
+  var choiceParser5 = PEG.buildParser('start = "a" "b" . / "a" "b" "w"');
+  doesNotParseWithMessage(
+    choiceParser5,
+    "ab", // NB: in sorted variant, it will be 'any character or "w"'
+    'Expected any character or "w", but end of input found.'
+  );
+
+  // "a"  "b" &. "a" / "a" "b" "w" :: "abd"
+  // "a"  "b" &. / "a" "b" "w" :: "abd"
+
   var simpleNotParser = PEG.buildParser('start = !"a" "b"');
   doesNotParseWithMessage(
     simpleNotParser,
@@ -521,7 +545,8 @@ test("error messages", function() {
   doesNotParseWithMessage(
     unsortedErrorsParser,
     "", // NB: differs from original peg.js, I refused sorting errors 
-        //     to improve parser simplicity / speed.
+        //     to improve parser simplicity / speed. User may sort
+        //     them himself, if he needs it. 
     'Expected "b" or "a", but end of input found.'
   );
 });
