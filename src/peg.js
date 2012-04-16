@@ -29,7 +29,7 @@ PEG.GrammarError = function(message) {
   this.message = message;
 };
 
-PEG.GrammarError.prototype = Error.prototype;
+PEG.GrammarError.prototype = new Error();
 
 // @include "utils.js"
 // @include "parser.js"
