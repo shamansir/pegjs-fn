@@ -11,7 +11,7 @@ c = "a" / "e" / g
 
 g = "oooo"i
 
-m = 'a' n?
+m = 'w' n?
 
 n = d:(b+ e f { return "aa"; })
 
