@@ -22,13 +22,18 @@ Features
 
 ### PEG.js IMproved
 
-  * Generated parsers are human-readable and compact (see comparison below)
+  * Generated parsers are human-readable and much more compact (see comparison below)
   * The operators that not used in grammar are not added to parser code
-  * Rules and operators are prepared once you've loaded the parser, not before every parse call.
+
+  Secondary differences:
+
+  * Rules and operators are prepared once you've loaded the parser, not before every parse call. Even rules parts are already compiled before first parse.
   * `chunk` variable is always accessible to actions, it stores current chunk of input and its start and end positions (you may use `xpos` function to get line and column for position)
   * The context for actions variables is strict and given in an object format to the action code, you may safely put you variables in the context and they will be automatically kept at the required level, no global variables or something like that
   * Errors contain information about 2-dimesional error position and the failed rule, so you may use it for something like auto-complete
   * The actual tests from standard PEG.js used for testing, expanded with tests on improvements
+  * Algorythm is exception-driven, which is a bit safer, a bit simpler and a bit faster way
+  * 2-dimensional position (slow operation) is calculated only on error or when user asks for it
 
 Getting Started
 ---------------
