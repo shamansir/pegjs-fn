@@ -89,37 +89,4 @@ function _testCtxLevel(lvl, props) {
   return passed && (pi === li);
 };
 
-/* tree looks like this:
-[ {'a': 0, 'b': 2 }, // top level
-  {'f': 1, 'g': 5, 'c': 3 }, // level one
-  {'l': 2 } ] // level two */
-parsesToContextTree = function(parser, input, tree) {
-  var ctx = parser.parse(input);
-  if ((ctx === null) || (typeof ctx === 'undefined')) {
-    ok(false, 'ctx is null or not defined');
-    return;
-  }
-  // travel to top
-  var p = ctx;
-  while (p) {
-    if (!_testCtxLevel(p, tree[p.__l])) {
-      ok(false, 'level '+p.__l+' not matches '+
-                '('+keys(p)+' <-> '+keys(tree[p.__l])+')');
-      return;
-    };
-    p = p.__p;
-  }
-  // travel to bottom
-  var c = ctx.__c;
-  while (c) {
-    if (!_testCtxLevel(c, tree[c.__l])) {
-      ok(false, 'level '+c.__l+' not matches '+
-                '('+keys(c)+' <-> '+keys(tree[c.__l])+')');
-      return;
-    }
-    c = c.__c;
-  }
-  ok(true);
-}
-
 

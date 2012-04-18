@@ -167,7 +167,7 @@ test("semantic and", function() {
          "abc\nde", ["a", ["b", "c", "d", ""], "e"]);
 
   var digitsParser = PEG.buildParser([
-    '{ var result; }',
+    '{ ctx.result = "default"; }',
     'start  = line (nl+ line)* { return ctx.result; }',
     'line   = thing (" "+ thing)*',
     'thing  = digit / mark',
@@ -295,7 +295,7 @@ test("semantic not", function() {
          "abc\nde", ["a", ["b", "c", "d", ""], "e"]);
 
   var digitsParser = PEG.buildParser([
-    '{ var result; }',
+    '{ сtx.result = "default"; }',
     'start  = line (nl+ line)* { return ctx.result; }',
     'line   = thing (" "+ thing)*',
     'thing  = digit / mark',
@@ -339,37 +339,48 @@ test("one or more expressions", function() {
 test("actions", function() {
 
   var singleElementUnlabeledParser = PEG.buildParser(
-    'start = "a" { return arguments.length; }'
-  );
-  parses(singleElementUnlabeledParser, "a", 3);
+    'start = "a" { return typeof ctx !== "undefined"' +
+                      '&& typeof chunk !== "undefined"; }');
+  parses(singleElementUnlabeledParser, "a", "");
 
   var singleElementLabeledParser = PEG.buildParser(
-    'start = a:"a" { return [arguments.length, offset, line, column, a]; }'
+    'start = a:"a" { return [ ctx.a,' +
+                            ' chunk.pos, chunk.end, chunk.match,' +
+                            ' xpos(chunk.pos), xpos(chunk.end) ]; }'
   );
-  parses(singleElementLabeledParser, "a", [4, 0, 1, 1, "a"]);
+  parses(singleElementLabeledParser, "a", [ "a", 
+                                            0, 1, "a", 
+                                            [1, 1], [1, 2]]);
 
   var multiElementUnlabeledParser = PEG.buildParser(
-    'start = "a" "b" "c" { return arguments.length; }'
-  );
-  parses(multiElementUnlabeledParser, "abc", 3);
+    'start = "a" "b" "c" { return typeof ctx !== "undefined"' +
+                              '&& typeof chunk !== "undefined"; }');
+  parses(multiElementUnlabeledParser, "abc", "");
 
   var multiElementLabeledParser = PEG.buildParser([
     'start = a:"a" "b" c:"c" {',
-    '  return [arguments.length, offset, line, column, a, c];',
+    '  return [ ctx.a, ctx.c,',
+    '           chunk.pos, chunk.end, chunk.match,',
+    '           xpos(chunk.pos), xpos(chunk.end) ];',
     '}'
     ].join("\n"));
-  parses(multiElementLabeledParser, "abc", [5, 0, 1, 1, "a", "c"]);
+  parses(multiElementLabeledParser, "abc", [ "a", "c", 
+                                             0, 3, "abc", 
+                                             [1, 1], [1, 3]]));
 
   var innerElementsUnlabeledParser = PEG.buildParser(
-    'start = "a" ("b" "c" "d" { return arguments.length; }) "e"'
+    'start = "a" ("b" "c" "d" { return typeof ctx !== "undefined"' +
+                                   '&& typeof chunk !== "undefined"; }) "e"'
   );
-  parses(innerElementsUnlabeledParser, "abcde", ["a", 3, "e"]);
+  parses(innerElementsUnlabeledParser, "abcde", ["a", "", "e"]);
 
   var innerElementsLabeledParser = PEG.buildParser([
     'start = "a"',
     '        (',
     '          b:"b" "c" d:"d" {',
-    '            return [arguments.length, offset, line, column, b, d];',
+    '            return [ ctx.b, ctx.d,',
+    '                     chunk.pos, chunk.end, chunk.match,',
+    '                     xpos(chunk.pos), xpos(chunk.end) ];',
     '          }',
     '        )',
     '        "e"'
@@ -377,7 +388,9 @@ test("actions", function() {
   parses(
     innerElementsLabeledParser,
     "abcde",
-    ["a", [5, 1, 1, 2, "b", "d"], "e"]
+    ["a", [ "b", "d", 
+            1, 4, "bcd",
+            [1, 2], [1, 4] ], "e"]
   );
 
   /*
@@ -395,13 +408,48 @@ test("actions", function() {
   );
   doesNotParse(notAMatchParser, "b");
 
+  var actionKnowsPositionParser = PEG.buildParser(
+    'start = [a-c]* { return chunk.pos; }'    
+  );    
+  parses(actionKnowsPositionParser, "abc", 0);
+
+  var actionKnowsEndPositionParser = PEG.buildParser(
+    'start = "a" "b" [c-e]* { return chunk.end; }'
+  );
+  parses(actionKnowsEndPositionParser, "abcde", 5);
+
+  var actionKnowsMatchParser = PEG.buildParser(
+    'start = [a-d]* { return chunk.match; }'
+  );
+  parses(actionKnowsMatchParser, "abcd", "abcd");
+
+  var actionKnowsPositionInsideParser = PEG.buildParser(
+    'start = [a-c]* ([d-f]* { return chunk.pos; })'
+  );
+  parses(actionKnowsPositionInsideParser, "acdef", [["a", "c"], 2]);
+
+  var actionKnowsEndPositionInsideParser = PEG.buildParser(
+    'start = "e" "d" ([bc]* { return chunk.end; }) "a"'
+  );
+  parses(actionKnowsEndPositionInsideParser, "edcba", ["e", "d", 4, "a"]);
+
+  var actionKnowsMatchInsideParser = PEG.buildParser(
+    'start = [vad]* ([tier]* { return chunk.match; }) "s" [temn]*'
+  );
+  parses(actionKnowsMatchInsideParser, "advertisment", [["a","d","v"], "erti", "s", ["m","e","n","t"]]);
+
+  var actionDontKnowOtherContextParser = PEG.buildParser(
+    'start = "a" ("b" { ctx.b = 17; return chunk.match; }) ("c" { return (typeof ctx.b === "undefined"); })'    
+  );    
+  parses(actionDontKnowOtherContextParser, "abc", ["a", ["b"], [""]]);
+
   var numbersParser = PEG.buildParser([
-    '{ var result; }',
-    'start  = line (nl+ line)* { return result; }',
+    '{ ctx.result = "default"; }',
+    'start  = line (nl+ line)* { return ctx.result; }',
     'line   = thing (" "+ thing)*',
     'thing  = digit / mark',
     'digit  = [0-9]',
-    'mark   = "x" { result = [line, column]; }',
+    'mark   = "x" { ctx.result = xpos(chunk.pos); }',
     'nl     = ("\\r" / "\\n" / "\\u2028" / "\\u2029")'
   ].join("\n"));
 
@@ -419,32 +467,32 @@ test("actions", function() {
 
 test("initializer", function() {
   var variableInActionParser = PEG.buildParser(
-    '{ a = 42; }; start = "a" { return a; }'
+    '{ ctx.a = 42; }; start = "a" { return ctx.a; }'
   );
   parses(variableInActionParser, "a", 42);
 
   var functionInActionParser = PEG.buildParser(
-    '{ function f() { return 42; } }; start = "a" { return f(); }'
+    '{ ctx.f = function() { return 42; } }; start = "a" { return ctx.f(); }'
   );
   parses(functionInActionParser, "a", 42);
 
   var variableInSemanticAndParser = PEG.buildParser(
-    '{ a = 42; }; start = "a" &{ return a === 42; }'
+    '{ ctx.a = 42; }; start = "a" &{ return ctx.a === 42; }'
   );
   parses(variableInSemanticAndParser, "a", ["a", ""]);
 
   var functionInSemanticAndParser = PEG.buildParser(
-    '{ function f() { return 42; } }; start = "a" &{ return f() === 42; }'
+    '{ ctx.f = function() { return 42; } }; start = "a" &{ return ctx.f() === 42; }'
   );
   parses(functionInSemanticAndParser, "a", ["a", ""]);
 
   var variableInSemanticNotParser = PEG.buildParser(
-    '{ a = 42; }; start = "a" !{ return a !== 42; }'
+    '{ ctx.a = 42; }; start = "a" !{ return ctx.a !== 42; }'
   );
   parses(variableInSemanticNotParser, "a", ["a", ""]);
 
   var functionInSemanticNotParser = PEG.buildParser(
-    '{ function f() { return 42; } }; start = "a" !{ return f() !== 42; }'
+    '{ ctx.f = function() { return 42; } }; start = "a" !{ return ctx.f() !== 42; }'
   );
   parses(functionInSemanticNotParser, "a", ["a", ""]);
 });
@@ -921,16 +969,22 @@ test("nested comments", function() {
   );
 });
 
-// TODO: test our cache
+// TODO: test our version of cache
 // TODO: test rules prepared once module is loaded
 // TODO: test operators prepared once module is loaded
 // TODO: test operators not executed when not required and executed in order
-// TODO: test all exported functions (including xpos)
+// TODO: test all exported functions (including xpos here and there)
 // TODO: test parser options
+// TODO: test levels of context and variables are inaccessible between code block at the same level
 // TODO: test errors a lot
 // TODO: test that none of operators or rules are accessible inside client code
 // TODO: test that all of exported functions are accessible inside client code
 // TODO: test that only one exception reaches parser even if something failed couple of times
 // TODO: test that even rules parts are already compiled before first parse
+// TODO: test that chunk accessible only in action
+// TODO: test ctx is only in initializer, 
+//            ctx/cpos is in only in semantic and/not 
+//            and ctx/chunk is only in action
+// TODO: wrap in inner tests tree when changing to jasmine
 
 })();
