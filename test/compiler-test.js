@@ -664,27 +664,29 @@ test("indempotence", function() {
 });
 
 test("error details", function() {
+  var EOI = "end of input";
+
   var literalParser = PEG.buildParser('start = "abcd"');
   doesNotParseWithDetails(
     literalParser,
     "",
     ["\"abcd\""],
     null,
-    'Expected "abcd" but end of input found.'
+    'Expected "abcd", but '+EOI+' found.'
   );
   doesNotParseWithDetails(
     literalParser,
     "efgh",
     ["\"abcd\""],
     "e",
-    'Expected "abcd" but "e" found.'
+    'Expected "abcd", but "e" found.'
   );
   doesNotParseWithDetails(
     literalParser,
     "abcde",
     [],
     "e",
-    'Expected end of input but "e" found.'
+    'Expected '+EOI+', but "e" found.'
   );
 
   var classParser = PEG.buildParser('start = [a-d]');
@@ -693,7 +695,7 @@ test("error details", function() {
     "",
     ["[a-d]"],
     null,
-    'Expected [a-d] but end of input found.'
+    'Expected [a-d], but '+EOI+' found.'
   );
   var negativeClassParser = PEG.buildParser('start = [^a-d]');
   doesNotParseWithDetails(
@@ -701,16 +703,16 @@ test("error details", function() {
     "",
     ["[^a-d]"],
     null,
-    'Expected [^a-d] but end of input found.'
+    'Expected [^a-d] but '+EOI+' found.'
   );
 
   var anyParser = PEG.buildParser('start = .');
   doesNotParseWithDetails(
     anyParser,
     "",
-    ["any character"],
+    ["any character"], // "{*}"
     null,
-    'Expected any character but end of input found.'
+    'Expected any character, but '+EOI+' found.'
   );
 
   var namedRuleWithLiteralParser = PEG.buildParser(
@@ -719,18 +721,18 @@ test("error details", function() {
   doesNotParseWithDetails(
     namedRuleWithLiteralParser,
     "a",
-    ["digit"],
+    ["digit"], // "{digit}"
     "a",
-    'Expected digit but "a" found.'
+    'Expected digit, but "a" found.'
   );
 
   var namedRuleWithAnyParser = PEG.buildParser('start "whatever" = .');
   doesNotParseWithDetails(
     namedRuleWithAnyParser,
     "",
-    ["whatever"],
+    ["whatever"], // "{whatever}"
     null,
-    'Expected whatever but end of input found.'
+    'Expected whatever, but '+EOI+' found.'
   );
 
   var namedRuleWithNamedRuleParser = PEG.buildParser([
@@ -742,7 +744,7 @@ test("error details", function() {
     "",
     ["digits"],
     null,
-    'Expected digits but end of input found.'
+    'Expected digits, but '+EOI+' found.'
   );
 
   var choiceParser1 = PEG.buildParser('start = "a" / "b" / "c"');
@@ -751,7 +753,7 @@ test("error details", function() {
     "def",
     ["\"a\"", "\"b\"", "\"c\""],
     "d",
-    'Expected "a", "b" or "c" but "d" found.'
+    'Expected "a", "b" or "c", but "d" found.'
   );
 
   var choiceParser2 = PEG.buildParser('start = "a" "b" "c" / "a"');
@@ -760,8 +762,37 @@ test("error details", function() {
     "abd",
     ["\"c\""],
     "d",
-    'Expected "c" but "d" found.'
+    'Expected "c", but "d" found.'
   );
+
+  var choiceParser3 = PEG.buildParser('start = ("a" { return null; }) "b" "c" / "a"');
+  doesNotParseWithDetails(
+    choiceParser3,
+    "abd",
+    [],
+    "b",
+    'Expected '+EOI+', but "b" found.'
+  );
+
+  var choiceParser4 = PEG.buildParser('start = "a" "b" ("c" { return null; }) / "a" "b" "w"');
+  doesNotParseWithDetails(
+    choiceParser4,
+    "abd",
+    ["\"c\", "\"w\""],
+    "d",    
+    'Expected "c" or "w", but "d" found.'
+  );
+ 
+  var choiceParser5 = PEG.buildParser('start = "a" "b" . / "a" "b" "w"');
+  doesNotParseWithDetails(
+    choiceParser5,
+    "ab", // NB: in sorted variant, it will be 'any character or "w"'
+    ["any character", "\"w\""]    
+    'Expected any character or "w", but end of input found.'
+  );
+ 
+  // "a"  "b" &. "a" / "a" "b" "w" :: "abd"
+  // "a"  "b" &. / "a" "b" "w" :: "abd"
 
   var simpleNotParser = PEG.buildParser('start = !"a" "b"');
   doesNotParseWithDetails(
@@ -769,7 +800,7 @@ test("error details", function() {
     "c",
     ["\"b\""],
     "c",
-    'Expected "b" but "c" found.'
+    'Expected "b", but "c" found.'
   );
 
   var simpleAndParser = PEG.buildParser('start = &"a" [a-b]');
@@ -778,7 +809,7 @@ test("error details", function() {
     "c",
     [],
     "c",
-    'Expected end of input but "c" found.'
+    'Expected '+EOI+', but "c" found.'
   );
 
   var emptyParser = PEG.buildParser('start = ');
@@ -787,7 +818,7 @@ test("error details", function() {
     "something",
     [],
     "s",
-    'Expected end of input but "s" found.'
+    'Expected '+EOI+', but "s" found.'
   );
 
   var duplicateErrorParser = PEG.buildParser('start = "a" / "a"');
@@ -796,16 +827,19 @@ test("error details", function() {
     "",
     ["\"a\""],
     null,
-    'Expected "a" but end of input found.'
+    'Expected "a", but '+EOI+' found.'
   );
 
   var unsortedErrorsParser = PEG.buildParser('start = "b" / "a"');
   doesNotParseWithDetails(
     unsortedErrorsParser,
     "",
-    ["\"a\"", "\"b\""],
+    // NB: differs from original peg.js, I refused sorting errors 
+    //     to improve parser simplicity / speed. User may sort
+    //     them himself, if he needs it. 
+    ["\"b\"", "\"a\""],
     null,
-    'Expected "a" or "b" but end of input found.'
+    'Expected "b" or "a" but '+EOI+' found.'
   );
 });
 
@@ -821,7 +855,7 @@ test("error positions", function() {
   var digitsParser = PEG.buildParser([
     'start  = line (("\\r" / "\\n" / "\\u2028" / "\\u2029")+ line)*',
     'line   = digits (" "+ digits)*',
-    'digits = digits:[0-9]+ { return digits.join(""); }'
+    'digits = digits:[0-9]+ { return ctx.digits.join(""); }'
   ].join("\n"));
 
   doesNotParseWithPos(digitsParser, "1\n2\n\n3\n\n\n4 5 x", 13, 7, 5);
@@ -873,23 +907,23 @@ test("arithmetics", function() {
   var parser = PEG.buildParser([
     'Expr    = Sum',
     'Sum     = head:Product tail:(("+" / "-") Product)* {',
-    '            var result = head;',
-    '            for (var i = 0; i < tail.length; i++) {',
-    '              if (tail[i][0] == "+") { result += tail[i][1]; }',
-    '              if (tail[i][0] == "-") { result -= tail[i][1]; }',
+    '            var result = ctx.head;',
+    '            for (var i = 0; i < ctx.tail.length; i++) {',
+    '              if (ctx.tail[i][0] == "+") { result += ctx.tail[i][1]; }',
+    '              if (ctx.tail[i][0] == "-") { result -= ctx.tail[i][1]; }',
     '            }',
     '            return result;',
     '          }',
     'Product = head:Value tail:(("*" / "/") Value)* {',
-    '            var result = head;',
-    '            for (var i = 0; i < tail.length; i++) {',
-    '              if (tail[i][0] == "*") { result *= tail[i][1]; }',
-    '              if (tail[i][0] == "/") { result /= tail[i][1]; }',
+    '            var result = ctx.head;',
+    '            for (var i = 0; i < ctx.tail.length; i++) {',
+    '              if (ctx.tail[i][0] == "*") { result *= ctx.tail[i][1]; }',
+    '              if (ctx.tail[i][0] == "/") { result /= ctx.tail[i][1]; }',
     '            }',
     '            return result;',
     '          }',
-    'Value   = digits:[0-9]+     { return parseInt(digits.join("")); }',
-    '        / "(" expr:Expr ")" { return expr; }'
+    'Value   = digits:[0-9]+     { return parseInt(ctx.digits.join("")); }',
+    '        / "(" expr:Expr ")" { return ctx.expr; }'
   ].join("\n"));
 
   /* Test "value" rule. */
@@ -927,9 +961,9 @@ test("non-context-free language", function() {
    * B ← b B? c
    */
   var parser = PEG.buildParser([
-    'S = &(A "c") a:"a"+ B:B !("a" / "b" / "c") { return a.join("") + B; }',
-    'A = a:"a" A:A? b:"b" { return a + A + b; }',
-    'B = b:"b" B:B? c:"c" { return b + B + c; }'
+    'S = &(A "c") a:"a"+ B:B !("a" / "b" / "c") { return ctx.a.join("") + ctx.B; }',
+    'A = a:"a" A:A? b:"b" { return ctx.a + ctx.A + ctx.b; }',
+    'B = b:"b" B:B? c:"c" { return ctx.b + ctx.B + ctx.c; }'
   ].join("\n"));
 
   parses(parser, "abc", "abc");
@@ -951,9 +985,9 @@ test("nested comments", function() {
    * Z ← any single character
    */
   var parser = PEG.buildParser([
-    'C     = begin:Begin ns:N* end:End { return begin + ns.join("") + end; }',
+    'C     = begin:Begin ns:N* end:End { return ctx.begin + ctx.ns.join("") + ctx.end; }',
     'N     = C',
-    '      / !Begin !End z:Z { return z; }',
+    '      / !Begin !End z:Z { return ctx.z; }',
     'Z     = .',
     'Begin = "(*"',
     'End   = "*)"'
@@ -974,7 +1008,7 @@ test("nested comments", function() {
 // TODO: test operators prepared once module is loaded
 // TODO: test operators not executed when not required and executed in order
 // TODO: test all exported functions (including xpos here and there)
-// TODO: test parser options
+// TODO: test parser options (i.e., name of 'ctx' var)
 // TODO: test levels of context and variables are inaccessible between code block at the same level
 // TODO: test errors a lot
 // TODO: test that none of operators or rules are accessible inside client code
@@ -986,5 +1020,7 @@ test("nested comments", function() {
 //            ctx/cpos is in only in semantic and/not 
 //            and ctx/chunk is only in action
 // TODO: wrap in inner tests tree when changing to jasmine
+// TODO: test rname in MatchFailed error
+// TODO: test MatchFailed localisation? (use special codes for "any character" and the stuff)
 
 })();

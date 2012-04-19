@@ -20,7 +20,7 @@ doesNotParse = function(parser, input) {
   raises(function() { parser.parse(input); }, parser.MatchFailed);
 };
 
-doesNotParseWithMessage = function(parser, input, message) {
+/*doesNotParseWithMessage = function(parser, input, message) {
   raises(
     function() { parser.parse(input); },
     function(e) {
@@ -31,6 +31,24 @@ doesNotParseWithMessage = function(parser, input, message) {
         ok(false, 'Raised unexpected error');
         return false;
       }
+    }
+  );
+};*/
+
+doesNotParseWithDetails = function(parser, input, 
+                         expected, found, message) {
+  raises(
+    function() { parser.parse(input); },
+    function(e) {
+      if (!(e instanceof parser.MatchFailed))    { return false; }
+      if (e.expected.length !== expected.length) { return false; }
+      for (var i = 0; i < e.expected.length; i++) {
+        if (e.expected[i] !== expected[i])       { return false; }
+      }
+      if (e.found !== found)                     { return false; }
+      if (e.message !== message)                 { return false; }
+
+      return true;
     }
   );
 };
@@ -44,11 +62,12 @@ doesNotParseWithSyntaxError = function(parser, input, message) {
   );
 };
 
-doesNotParseWithPos = function(parser, input, line, column) {
+doesNotParseWithPos = function(parser, input, pos, line, column) {
   raises(
     function() { parser.parse(input); },
     function(e) {
       return e instanceof parser.MatchFailed
+        && e.pos === pos
         && e.xpos[0] === line
         && e.xpos[1] === column;
     }
