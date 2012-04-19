@@ -366,7 +366,7 @@ test("actions", function() {
     ].join("\n"));
   parses(multiElementLabeledParser, "abc", [ "a", "c", 
                                              0, 3, "abc", 
-                                             [1, 1], [1, 3]]));
+                                             [1, 1], [1, 3]]);
 
   var innerElementsUnlabeledParser = PEG.buildParser(
     'start = "a" ("b" "c" "d" { return typeof ctx !== "undefined"' +
@@ -778,7 +778,7 @@ test("error details", function() {
   doesNotParseWithDetails(
     choiceParser4,
     "abd",
-    ["\"c\", "\"w\""],
+    ["\"c\"", "\"w\""],
     "d",    
     'Expected "c" or "w", but "d" found.'
   );
@@ -787,7 +787,8 @@ test("error details", function() {
   doesNotParseWithDetails(
     choiceParser5,
     "ab", // NB: in sorted variant, it will be 'any character or "w"'
-    ["any character", "\"w\""]    
+    ["any character", "\"w\""],
+    null,   
     'Expected any character or "w", but end of input found.'
   );
  
