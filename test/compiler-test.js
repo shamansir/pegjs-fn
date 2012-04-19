@@ -63,10 +63,15 @@ test("simple not", function() {
 });
 
 test("semantic and", function() {
-  var acceptingParser = PEG.buildParser('start = "a" &{ return true; } "b"');
+
+  var acceptingParser = PEG.buildParser(
+    'start = "a" &{ return true; } "b"'
+  );
   parses(acceptingParser, "ab", ["a", "", "b"]);
 
-  var rejectingParser = PEG.buildParser('start = "a" &{ return false; } "b"');
+  var rejectingParser = PEG.buildParser(
+    'start = "a" &{ return false; } "b"'
+  );
   doesNotParse(rejectingParser, "ab");
 
   var oddParser = PEG.buildParser('start = as:"a"* &{ return ctx.as.length % 2; }');
@@ -75,15 +80,124 @@ test("semantic and", function() {
 
   var oddParserWithAction = PEG.buildParser(
     'start = as:"a"* &{ return ctx.as.length % 2; } "b" { return ctx.as; }');
-  doesNotParse(oddParserWithAction, "aab");
+  doesNotParse(oddParserWithAction, "aab");     
   parses(oddParserWithAction, "aaab", ["a", "a", "a"]);
+
+  var singleElementUnlabeledParser = PEG.buildParser([
+    'start = "a" &{',
+    '          return cpos === 1', // TODO: c[urrent]pos and a[ctual]pos?
+    '            && xpos(cpos)[0] === 1',
+    '            && xpos(cpos)[1] === 2;',
+    '        }'
+  ].join("\n"));
+  parses(singleElementUnlabeledParser, "a", ["a", ""]);
+
+  var singleElementLabeledParser = PEG.buildParser([
+    'start = a:"a" &{',
+    '          return cpos === 1',
+    '            && xpos(cpos)[0] === 1',
+    '            && xpos(cpos)[1] === 2',
+    '            && ctx.a === "a";',
+    '        }'
+  ].join("\n"));
+  parses(singleElementLabeledParser, "a", ["a", ""]);
+
+  var multiElementUnlabeledParser = PEG.buildParser([
+    'start = "a" "b" "c" &{',
+    '          return cpos === 3',
+    '            && xpos(cpos)[0] === 1',
+    '            && xpos(cpos)[1] === 4;',
+    '        }'
+  ].join("\n"));
+  parses(multiElementUnlabeledParser, "abc", ["a", "b", "c", ""]);
+
+  var multiElementLabeledParser = PEG.buildParser([
+    'start = a:"a" "b" c:"c" &{',
+    '          return cpos === 3',
+    '            && xpos(cpos)[0] === 1',
+    '            && xpos(cpos)[1] === 4',
+    '            && ctx.a === "a"',
+    '            && ctx.c === "c";',
+    '        }'
+  ].join("\n"));
+  parses(multiElementLabeledParser, "abc", ["a", "b", "c", ""]);
+
+  var innerElementsUnlabeledParser = PEG.buildParser([
+    'start = "a"',
+    '        (',
+    '          "b" "c" "d" &{',
+    '            return cpos === 4',
+    '              && xpos(cpos)[0] === 1',
+    '              && xpos(cpos)[1] === 5;',
+    '           }',
+    '        )',
+    '        "e"'
+  ].join("\n"));
+  parses(innerElementsUnlabeledParser, "abcde", ["a", ["b", "c", "d", ""], "e"]);
+
+  var innerElementsLabeledParser = PEG.buildParser([
+    'start = "a"',
+    '        (',
+    '          b:"b" "c" d:"d" &{',
+    '            return cpos === 4',
+    '              && xpos(cpos)[0] === 1',
+    '              && xpos(cpos)[1] === 5',
+    '              && ctx.b === "b"',
+    '              && ctx.d === "d";',
+    '          }',
+    '        )',
+    '        "e"'
+  ].join("\n"));
+  parses(innerElementsLabeledParser, "abcde", ["a", ["b", "c", "d", ""], "e"]);
+
+  var twoLineInnerElementsLabeledParser = PEG.buildParser([
+    'start = "a"',
+    '        (',
+    '          b:"b" "c" . d:"d" &{',
+    '            return cpos === 5',
+    '              && xpos(cpos)[0] === 2',
+    '              && xpos(cpos)[1] === 1',
+    '              && ctx.b === "b"',
+    '              && ctx.d === "d";',
+    '          }',
+    '        )',
+    '        "e"'
+  ].join("\n"));
+  parses(twoLineInnerElementsLabeledParser, 
+         "abc\nde", ["a", ["b", "c", "d", ""], "e"]);
+
+  var digitsParser = PEG.buildParser([
+    '{ ctx.result = "default"; }',
+    'start  = line (nl+ line)* { return ctx.result; }',
+    'line   = thing (" "+ thing)*',
+    'thing  = digit / mark',
+    'digit  = [0-9]',
+    'mark   = &{ ctx.result = xpos(cpos); return true; } "x"',
+    'nl     = ("\\r" / "\\n" / "\\u2028" / "\\u2029")'
+  ].join("\n"));
+
+  parses(digitsParser, "1\n2\n\n3\n\n\n4 5 x", [7, 5]);
+
+  /* Non-Unix newlines */
+  parses(digitsParser, "1\rx", [2, 1]);   // Old Mac
+  parses(digitsParser, "1\r\nx", [2, 1]); // Windows
+  parses(digitsParser, "1\n\rx", [3, 1]); // mismatched
+
+  /* Strange newlines */
+  parses(digitsParser, "1\u2028x", [2, 1]); // line separator
+  parses(digitsParser, "1\u2029x", [2, 1]); // paragraph separator
 });
 
 test("semantic not", function() {
-  var acceptingParser = PEG.buildParser('start = "a" !{ return false; } "b"');
+
+  var acceptingParser = PEG.buildParser(
+    'start = "a" !{ return false; } "b"'
+  );
   parses(acceptingParser, "ab", ["a", "", "b"]);
 
-  var rejectingParser = PEG.buildParser('start = "a" !{ return true; } "b"');
+  var rejectingParser = PEG.buildParser(
+    'start = "a" !{ return true; } "b"'
+  );
   doesNotParse(rejectingParser, "ab");
 
   var evenParser = PEG.buildParser('start = as:"a"* !{ return ctx.as.length % 2; }');
@@ -91,9 +205,115 @@ test("semantic not", function() {
   doesNotParse(evenParser, "aaa");
 
   var evenParserWithAction = PEG.buildParser(
-    'start = as:"a"* !{ return ctx.as.length % 2; } "b" { return ctx.as; }');
-  parses(evenParserWithAction, "aab", ["a", "a"]);
+    'start = as:"a"* !{ return ctx.as.length % 2; } "b" { return ctx.as; }');    
+  parses(evenParserWithAction, "aab", ["a", "a"]);     
   doesNotParse(evenParserWithAction, "aaab");
+
+  var singleElementUnlabeledParser = PEG.buildParser([
+    'start = "a" !{',
+    '          return cpos !== 1', // TODO: c[urrent]pos and a[ctual]pos?
+    '            || xpos(cpos)[0] !== 1',
+    '            || xpos(cpos)[1] !== 2;',
+    '        }'
+  ].join("\n"));
+  parses(singleElementUnlabeledParser, "a", ["a", ""]);
+
+  var singleElementLabeledParser = PEG.buildParser([
+    'start = a:"a" !{',
+    '          return cpos !== 1',
+    '            || xpos(cpos)[0] !== 1',
+    '            || xpos(cpos)[1] !== 2',
+    '            || ctx.a !== "a";',
+    '        }'
+  ].join("\n"));
+  parses(singleElementLabeledParser, "a", ["a", ""]);
+
+  var multiElementUnlabeledParser = PEG.buildParser([
+    'start = "a" "b" "c" !{',
+    '          return cpos !== 3',
+    '            && xpos(cpos)[0] !== 1',
+    '            && xpos(cpos)[1] !== 4;',
+    '        }'
+  ].join("\n"));
+  parses(multiElementUnlabeledParser, "abc", ["a", "b", "c", ""]);
+
+  var multiElementLabeledParser = PEG.buildParser([
+    'start = a:"a" "b" c:"c" !{',
+    '          return cpos !== 3',
+    '            || xpos(cpos)[0] !== 1',
+    '            || xpos(cpos)[1] !== 4',
+    '            || ctx.a !== "a"',
+    '            || ctx.c !== "c";',
+    '        }'
+  ].join("\n"));
+  parses(multiElementLabeledParser, "abc", ["a", "b", "c", ""]);
+
+  var innerElementsUnlabeledParser = PEG.buildParser([
+    'start = "a"',
+    '        (',
+    '          b:"b" "c" d:"d" !{',
+    '            return cpos !== 4',
+    '              || xpos(cpos)[0] !== 1',
+    '              || xpos(cpos)[1] !== 5',
+    '              || ctx.b !== "b"',
+    '              || ctx.d !== "d";',
+    '          }',
+    '        )',
+    '        "e"'
+  ].join("\n"));
+  parses(innerElementsUnlabeledParser, "abcde", ["a", ["b", "c", "d", ""], "e"]);
+
+  var innerElementsLabeledParser = PEG.buildParser([
+    'start = "a"',
+    '        (',
+    '          b:"b" "c" d:"d" !{',
+    '            return cpos !== 4',
+    '              || xpos(cpos)[0] !== 1',
+    '              || xpos(cpos)[1] !== 5',
+    '              || ctx.b !== "b"',
+    '              || ctx.d !== "d";',
+    '          }',
+    '        )',
+    '        "e"'
+  ].join("\n"));
+  parses(innerElementsLabeledParser, "abcde", ["a", ["b", "c", "d", ""], "e"]);
+
+  var twoLineInnerElementsLabeledParser = PEG.buildParser([
+    'start = "a"',
+    '        (',
+    '          b:"b" "c" . d:"d" !{',
+    '            return cpos !== 5',
+    '              || xpos(cpos)[0] !== 2',
+    '              || xpos(cpos)[1] !== 1',
+    '              || ctx.b !== "b"',
+    '              || ctx.d !== "d";',
+    '          }',
+    '        )',
+    '        "e"'
+  ].join("\n"));
+  parses(twoLineInnerElementsLabeledParser, 
+         "abc\nde", ["a", ["b", "c", "d", ""], "e"]);
+
+  var digitsParser = PEG.buildParser([
+    '{ сtx.result = "default"; }',
+    'start  = line (nl+ line)* { return ctx.result; }',
+    'line   = thing (" "+ thing)*',
+    'thing  = digit / mark',
+    'digit  = [0-9]',
+    'mark   = !{ ctx.result = xpos(cpos); return false; } "x"',
+    'nl     = ("\\r" / "\\n" / "\\u2028" / "\\u2029")'
+  ].join("\n"));
+
+  parses(digitsParser, "1\n2\n\n3\n\n\n4 5 x", [7, 5]);
+
+  /* Non-Unix newlines */
+  parses(digitsParser, "1\rx", [2, 1]);   // Old Mac
+  parses(digitsParser, "1\r\nx", [2, 1]); // Windows
+  parses(digitsParser, "1\n\rx", [3, 1]); // mismatched
+
+  /* Strange newlines */
+  parses(digitsParser, "1\u2028x", [2, 1]); // line separator
+  parses(digitsParser, "1\u2029x", [2, 1]); // paragraph separator
 });
 
 test("optional expressions", function() {
@@ -119,64 +339,67 @@ test("one or more expressions", function() {
 test("actions", function() {
 
   var singleElementUnlabeledParser = PEG.buildParser(
-    'start = "a" { return ctx; }'
-  );
-  parsesToContextTree(
-    singleElementUnlabeledParser, "a", 
-    [{}, {}] // [ initializer, start ]
-  );
+    'start = "a" { return typeof ctx !== "undefined"' +
+                      '&& typeof chunk !== "undefined"; }');
+  parses(singleElementUnlabeledParser, "a", "");
 
   var singleElementLabeledParser = PEG.buildParser(
-    'start = a:"a" { return ctx; }'
+    'start = a:"a" { return [ ctx.a,' +
+                            ' chunk.pos, chunk.end, chunk.match,' +
+                            ' xpos(chunk.pos), xpos(chunk.end) ]; }'
   );
-  parsesToContextTree(
-    singleElementLabeledParser, "a", 
-    [{}, {a:'a'}] // [ initializer, start ]
-  );
+  parses(singleElementLabeledParser, "a", [ "a", 
+                                            0, 1, "a", 
+                                            [1, 1], [1, 2]]);
 
   var multiElementUnlabeledParser = PEG.buildParser(
-    'start = "a" "b" "c" { return ctx; }'
-  );
-  parsesToContextTree(
-    multiElementUnlabeledParser, "abc", 
-    [{}, {}] // [ initializer, start ]
-  );
+    'start = "a" "b" "c" { return typeof ctx !== "undefined"' +
+                              '&& typeof chunk !== "undefined"; }');
+  parses(multiElementUnlabeledParser, "abc", "");
 
-  var multiElementLabeledParser = PEG.buildParser(
-    'start = a:"a" "b" c:"c" { return ctx; }'
-  );
-  parsesToContextTree(
-    multiElementLabeledParser, "abc", 
-    [{}, {a:'a', c:'c'}] // [ initializer, start ]
-  );
+  var multiElementLabeledParser = PEG.buildParser([
+    'start = a:"a" "b" c:"c" {',
+    '  return [ ctx.a, ctx.c,',
+    '           chunk.pos, chunk.end, chunk.match,',
+    '           xpos(chunk.pos), xpos(chunk.end) ];',
+    '}'
+    ].join("\n"));
+  parses(multiElementLabeledParser, "abc", [ "a", "c", 
+                                             0, 3, "abc", 
+                                             [1, 1], [1, 3]]);
 
   var innerElementsUnlabeledParser = PEG.buildParser(
-    'start = "a" ("b" "c" "d") "e" { return ctx; }'
+    'start = "a" ("b" "c" "d" { return typeof ctx !== "undefined"' +
+                                   '&& typeof chunk !== "undefined"; }) "e"'
   );
-  parsesToContextTree(
-    innerElementsUnlabeledParser, "abcde", 
-    [{}, {}] // [ initializer, start ]
-  );
+  parses(innerElementsUnlabeledParser, "abcde", ["a", "", "e"]);
 
-  var innerElementsLabeledParser = PEG.buildParser(
-    'start = a:"a" d:("b" "c" "d" {return [ "foo-"+ctx.a, ctx.d ];}) "e" { return ctx.d; }'
-  );
-  parses(innerElementsLabeledParser, "abcde", ['foo-a', undefined]);
-
-  var innerElementsLabeledParserByCtx = PEG.buildParser(
-    'start = a:"a" d:("b" c:"c" f:"d" { return "bcd"; }) "e" { return ctx; }'
-  );
-  parsesToContextTree(
-    innerElementsLabeledParserByCtx, "abcde", 
-    [{}, {a:'a', d:'bcd'}, {c:'c', f:'d'}]
-     // [ initializer, start, action ]
+  var innerElementsLabeledParser = PEG.buildParser([
+    'start = "a"',
+    '        (',
+    '          b:"b" "c" d:"d" {',
+    '            return [ ctx.b, ctx.d,',
+    '                     chunk.pos, chunk.end, chunk.match,',
+    '                     xpos(chunk.pos), xpos(chunk.end) ];',
+    '          }',
+    '        )',
+    '        "e"'
+  ].join("\n"));
+  parses(
+    innerElementsLabeledParser,
+    "abcde",
+    ["a", [ "b", "d", 
+            1, 4, "bcd",
+            [1, 2], [1, 4] ], "e"]
   );
 
   /*
    * Test that the parsing position returns after successfull parsing of the
    * action expression and action returning |null|.
    */
-  var posTestParser = PEG.buildParser('start = "a" { return null; } / "a"');
+  var posTestParser = PEG.buildParser(
+    'start = "a" { return null; } / "a"'
+  );
   parses(posTestParser, "a", "a");
 
   /* Test that the action is not called when its expression does not match. */
@@ -186,8 +409,8 @@ test("actions", function() {
   doesNotParse(notAMatchParser, "b");
 
   var actionKnowsPositionParser = PEG.buildParser(
-    'start = [a-c]* { return chunk.pos; }'
-  );
+    'start = [a-c]* { return chunk.pos; }'    
+  );    
   parses(actionKnowsPositionParser, "abc", 0);
 
   var actionKnowsEndPositionParser = PEG.buildParser(
@@ -214,21 +437,39 @@ test("actions", function() {
     'start = [vad]* ([tier]* { return chunk.match; }) "s" [temn]*'
   );
   parses(actionKnowsMatchInsideParser, "advertisment", [["a","d","v"], "erti", "s", ["m","e","n","t"]]);
+
+  var actionDontKnowOtherContextParser = PEG.buildParser(
+    'start = "a" ("b" { ctx.b = 17; return chunk.match; }) ("c" { return (typeof ctx.b === "undefined"); })'    
+  );    
+  parses(actionDontKnowOtherContextParser, "abc", ["a", ["b"], [""]]);
+
+  var numbersParser = PEG.buildParser([
+    '{ ctx.result = "default"; }',
+    'start  = line (nl+ line)* { return ctx.result; }',
+    'line   = thing (" "+ thing)*',
+    'thing  = digit / mark',
+    'digit  = [0-9]',
+    'mark   = "x" { ctx.result = xpos(chunk.pos); }',
+    'nl     = ("\\r" / "\\n" / "\\u2028" / "\\u2029")'
+  ].join("\n"));
+
+  parses(numbersParser, "1\n2\n\n3\n\n\n4 5 x", [7, 5]);
+
+  /* Non-Unix newlines */
+  parses(numbersParser, "1\rx", [2, 1]);   // Old Mac
+  parses(numbersParser, "1\r\nx", [2, 1]); // Windows
+  parses(numbersParser, "1\n\rx", [3, 1]); // mismatched
+
+  /* Strange newlines */
+  parses(numbersParser, "1\u2028x", [2, 1]); // line separator
+  parses(numbersParser, "1\u2029x", [2, 1]); // paragraph separator
 });
 
 test("initializer", function() {
   var variableInActionParser = PEG.buildParser(
-    '{ ctx.a = 42 }; start = "a" { return ctx.a; }'
+    '{ ctx.a = 42; }; start = "a" { return ctx.a; }'
   );
   parses(variableInActionParser, "a", 42);
-
-  var variableInInitializerContextChecker = PEG.buildParser(
-    '{ ctx.a = 42 }; start = "a" { return ctx; }'
-  );    
-  parsesToContextTree(
-    variableInInitializerContextChecker, "a", 
-    [{'a':42}, {}] // [ initializer, start ]
-  );
 
   var functionInActionParser = PEG.buildParser(
     '{ ctx.f = function() { return 42; } }; start = "a" { return ctx.f(); }'
@@ -254,7 +495,6 @@ test("initializer", function() {
     '{ ctx.f = function() { return 42; } }; start = "a" !{ return ctx.f() !== 42; }'
   );
   parses(functionInSemanticNotParser, "a", ["a", ""]);
-
 });
 
 test("rule references", function() {
@@ -292,7 +532,9 @@ test("literals", function() {
   doesNotParse(oneCharCaseInsensitiveParser, "");
   doesNotParse(oneCharCaseInsensitiveParser, "b");
 
-  var multiCharCaseInsensitiveParser = PEG.buildParser('start = "abcd"i');
+  var multiCharCaseInsensitiveParser = PEG.buildParser(
+    'start = "abcd"i'
+  );
   parses(multiCharCaseInsensitiveParser, "abcd", "abcd");
   parses(multiCharCaseInsensitiveParser, "ABCD", "ABCD");
   doesNotParse(multiCharCaseInsensitiveParser, "");
@@ -333,7 +575,9 @@ test("classes", function() {
   parses(invertedEmptyClassParser, "a", "a");
   doesNotParse(invertedEmptyClassParser, "ab");
 
-  var nonEmptyCaseSensitiveClassParser = PEG.buildParser('start = [ab-d]');
+  var nonEmptyCaseSensitiveClassParser = PEG.buildParser(
+    'start = [ab-d]'
+  );
   parses(nonEmptyCaseSensitiveClassParser, "a", "a");
   parses(nonEmptyCaseSensitiveClassParser, "b", "b");
   parses(nonEmptyCaseSensitiveClassParser, "c", "c");
@@ -346,7 +590,9 @@ test("classes", function() {
   doesNotParse(nonEmptyCaseSensitiveClassParser, "e");
   doesNotParse(nonEmptyCaseSensitiveClassParser, "ab");
 
-  var invertedNonEmptyCaseSensitiveClassParser = PEG.buildParser('start = [^ab-d]');
+  var invertedNonEmptyCaseSensitiveClassParser = PEG.buildParser(
+    'start = [^ab-d]'
+  );
   parses(invertedNonEmptyCaseSensitiveClassParser, "A", "A");
   parses(invertedNonEmptyCaseSensitiveClassParser, "B", "B");
   parses(invertedNonEmptyCaseSensitiveClassParser, "C", "C");
@@ -359,7 +605,9 @@ test("classes", function() {
   doesNotParse(invertedNonEmptyCaseSensitiveClassParser, "");
   doesNotParse(invertedNonEmptyCaseSensitiveClassParser, "ab");
 
-  var nonEmptyCaseInsensitiveClassParser = PEG.buildParser('start = [ab-d]i');
+  var nonEmptyCaseInsensitiveClassParser = PEG.buildParser(
+    'start = [ab-d]i'
+  );
   parses(nonEmptyCaseInsensitiveClassParser, "a", "a");
   parses(nonEmptyCaseInsensitiveClassParser, "b", "b");
   parses(nonEmptyCaseInsensitiveClassParser, "c", "c");
@@ -372,7 +620,9 @@ test("classes", function() {
   doesNotParse(nonEmptyCaseInsensitiveClassParser, "e");
   doesNotParse(nonEmptyCaseInsensitiveClassParser, "ab");
 
-  var invertedNonEmptyCaseInsensitiveClassParser = PEG.buildParser('start = [^ab-d]i');
+  var invertedNonEmptyCaseInsensitiveClassParser = PEG.buildParser(
+    'start = [^ab-d]i'
+  );
   parses(invertedNonEmptyCaseInsensitiveClassParser, "e", "e");
   doesNotParse(invertedNonEmptyCaseInsensitiveClassParser, "a", "a");
   doesNotParse(invertedNonEmptyCaseInsensitiveClassParser, "b", "b");
@@ -413,141 +663,184 @@ test("indempotence", function() {
   strictEqual(parser1.toSource(), parser2.toSource());
 });
 
-test("error messages", function() {
+test("error details", function() {
+  var EOI = "end of input";
+
   var literalParser = PEG.buildParser('start = "abcd"');
-  doesNotParseWithMessage(
+  doesNotParseWithDetails(
     literalParser,
     "",
-    'Expected "abcd", but end of input found.'
+    ["\"abcd\""],
+    null,
+    'Expected "abcd", but '+EOI+' found.'
   );
-  doesNotParseWithMessage(
+  doesNotParseWithDetails(
     literalParser,
     "efgh",
+    ["\"abcd\""],
+    "e",
     'Expected "abcd", but "e" found.'
   );
-  doesNotParseWithMessage(
+  doesNotParseWithDetails(
     literalParser,
     "abcde",
-    'Expected end of input, but "e" found.'
+    [],
+    "e",
+    'Expected '+EOI+', but "e" found.'
   );
 
   var classParser = PEG.buildParser('start = [a-d]');
-  doesNotParseWithMessage(
+  doesNotParseWithDetails(
     classParser,
     "",
-    'Expected [a-d], but end of input found.'
+    ["[a-d]"],
+    null,
+    'Expected [a-d], but '+EOI+' found.'
   );
   var negativeClassParser = PEG.buildParser('start = [^a-d]');
-  doesNotParseWithMessage(
+  doesNotParseWithDetails(
     negativeClassParser,
     "",
-    'Expected [^a-d], but end of input found.'
+    ["[^a-d]"],
+    null,
+    'Expected [^a-d] but '+EOI+' found.'
   );
 
   var anyParser = PEG.buildParser('start = .');
-  doesNotParseWithMessage(
+  doesNotParseWithDetails(
     anyParser,
     "",
-    'Expected any character, but end of input found.'
+    ["any character"], // "{*}"
+    null,
+    'Expected any character, but '+EOI+' found.'
   );
 
-  var namedRuleWithLiteralParser = PEG.buildParser('start "digit" = [0-9]');
-  doesNotParseWithMessage(
+  var namedRuleWithLiteralParser = PEG.buildParser(
+    'start "digit" = [0-9]'
+  );
+  doesNotParseWithDetails(
     namedRuleWithLiteralParser,
+    "a",
+    ["digit"], // "{digit}"
     "a",
     'Expected digit, but "a" found.'
   );
 
   var namedRuleWithAnyParser = PEG.buildParser('start "whatever" = .');
-  doesNotParseWithMessage(
+  doesNotParseWithDetails(
     namedRuleWithAnyParser,
     "",
-    'Expected whatever, but end of input found.'
+    ["whatever"], // "{whatever}"
+    null,
+    'Expected whatever, but '+EOI+' found.'
   );
 
   var namedRuleWithNamedRuleParser = PEG.buildParser([
     'start "digits" = digit+',
     'digit "digit"  = [0-9]'
   ].join("\n"));
-  doesNotParseWithMessage(
+  doesNotParseWithDetails(
     namedRuleWithNamedRuleParser,
-    "", // NB: differs from original peg.js, I expect failed rule to be written
-    'Expected digit, but end of input found.'
+    "",
+    ["digits"],
+    null,
+    'Expected digits, but '+EOI+' found.'
   );
 
   var choiceParser1 = PEG.buildParser('start = "a" / "b" / "c"');
-  doesNotParseWithMessage(
+  doesNotParseWithDetails(
     choiceParser1,
     "def",
+    ["\"a\"", "\"b\"", "\"c\""],
+    "d",
     'Expected "a", "b" or "c", but "d" found.'
   );
 
   var choiceParser2 = PEG.buildParser('start = "a" "b" "c" / "a"');
-  doesNotParseWithMessage(
+  doesNotParseWithDetails(
     choiceParser2,
     "abd",
+    ["\"c\""],
+    "d",
     'Expected "c", but "d" found.'
   );
 
   var choiceParser3 = PEG.buildParser('start = ("a" { return null; }) "b" "c" / "a"');
-  doesNotParseWithMessage(
+  doesNotParseWithDetails(
     choiceParser3,
     "abd",
-    'Expected end of input, but "b" found.'
+    [],
+    "b",
+    'Expected '+EOI+', but "b" found.'
   );
 
   var choiceParser4 = PEG.buildParser('start = "a" "b" ("c" { return null; }) / "a" "b" "w"');
-  doesNotParseWithMessage(
+  doesNotParseWithDetails(
     choiceParser4,
     "abd",
+    ["\"c\"", "\"w\""],
+    "d",    
     'Expected "c" or "w", but "d" found.'
   );
-
+ 
   var choiceParser5 = PEG.buildParser('start = "a" "b" . / "a" "b" "w"');
-  doesNotParseWithMessage(
+  doesNotParseWithDetails(
     choiceParser5,
     "ab", // NB: in sorted variant, it will be 'any character or "w"'
+    ["any character", "\"w\""],
+    null,   
     'Expected any character or "w", but end of input found.'
   );
-
+ 
   // "a"  "b" &. "a" / "a" "b" "w" :: "abd"
   // "a"  "b" &. / "a" "b" "w" :: "abd"
 
   var simpleNotParser = PEG.buildParser('start = !"a" "b"');
-  doesNotParseWithMessage(
+  doesNotParseWithDetails(
     simpleNotParser,
+    "c",
+    ["\"b\""],
     "c",
     'Expected "b", but "c" found.'
   );
 
   var simpleAndParser = PEG.buildParser('start = &"a" [a-b]');
-  doesNotParseWithMessage(
+  doesNotParseWithDetails(
     simpleAndParser,
     "c",
-    'Expected end of input, but "c" found.'
+    [],
+    "c",
+    'Expected '+EOI+', but "c" found.'
   );
 
   var emptyParser = PEG.buildParser('start = ');
-  doesNotParseWithMessage(
+  doesNotParseWithDetails(
     emptyParser,
     "something",
-    'Expected end of input, but "s" found.'
+    [],
+    "s",
+    'Expected '+EOI+', but "s" found.'
   );
 
   var duplicateErrorParser = PEG.buildParser('start = "a" / "a"');
-  doesNotParseWithMessage(
+  doesNotParseWithDetails(
     duplicateErrorParser,
     "",
-    'Expected "a", but end of input found.'
+    ["\"a\""],
+    null,
+    'Expected "a", but '+EOI+' found.'
   );
 
   var unsortedErrorsParser = PEG.buildParser('start = "b" / "a"');
-  doesNotParseWithMessage(
+  doesNotParseWithDetails(
     unsortedErrorsParser,
-    "", // NB: differs from original peg.js, I refused sorting errors 
-        //     to improve parser simplicity / speed. User may sort
-        //     them himself, if he needs it. 
-    'Expected "b" or "a", but end of input found.'
+    "",
+    // NB: differs from original peg.js, I refused sorting errors 
+    //     to improve parser simplicity / speed. User may sort
+    //     them himself, if he needs it. 
+    ["\"b\"", "\"a\""],
+    null,
+    'Expected "b" or "a" but '+EOI+' found.'
   );
 });
 
@@ -555,10 +848,10 @@ test("error positions", function() {
   var simpleParser = PEG.buildParser('start = "a"');
 
   /* Regular match failure */
-  doesNotParseWithPos(simpleParser, "b", 1, 1);
+  doesNotParseWithPos(simpleParser, "b", 0, 1, 1);
 
   /* Trailing input */
-  doesNotParseWithPos(simpleParser, "ab", 1, 2);
+  doesNotParseWithPos(simpleParser, "ab", 1, 1, 2);
 
   var digitsParser = PEG.buildParser([
     'start  = line (("\\r" / "\\n" / "\\u2028" / "\\u2029")+ line)*',
@@ -566,16 +859,16 @@ test("error positions", function() {
     'digits = digits:[0-9]+ { return ctx.digits.join(""); }'
   ].join("\n"));
 
-  doesNotParseWithPos(digitsParser, "1\n2\n\n3\n\n\n4 5 x", 7, 5);
+  doesNotParseWithPos(digitsParser, "1\n2\n\n3\n\n\n4 5 x", 13, 7, 5);
 
   /* Non-Unix newlines */
-  doesNotParseWithPos(digitsParser, "1\rx", 2, 1);   // Old Mac
-  doesNotParseWithPos(digitsParser, "1\r\nx", 2, 1); // Windows
-  doesNotParseWithPos(digitsParser, "1\n\rx", 3, 1); // mismatched
+  doesNotParseWithPos(digitsParser, "1\rx", 2, 2, 1);   // Old Mac
+  doesNotParseWithPos(digitsParser, "1\r\nx", 3, 2, 1); // Windows
+  doesNotParseWithPos(digitsParser, "1\n\rx", 3, 3, 1); // mismatched
 
   /* Strange newlines */
-  doesNotParseWithPos(digitsParser, "1\u2028x", 2, 1); // line separator
-  doesNotParseWithPos(digitsParser, "1\u2029x", 2, 1); // paragraph separator
+  doesNotParseWithPos(digitsParser, "1\u2028x", 2, 2, 1); // line separator
+  doesNotParseWithPos(digitsParser, "1\u2029x", 2, 2, 1); // paragraph separator
 });
 
 test("start rule", function() {
@@ -711,5 +1004,24 @@ test("nested comments", function() {
   );
 });
 
-})();
+// TODO: test our version of cache
+// TODO: test rules prepared once module is loaded
+// TODO: test operators prepared once module is loaded
+// TODO: test operators not executed when not required and executed in order
+// TODO: test all exported functions (including xpos here and there)
+// TODO: test parser options (i.e., name of 'ctx' var)
+// TODO: test levels of context and variables are inaccessible between code block at the same level
+// TODO: test errors a lot
+// TODO: test that none of operators or rules are accessible inside client code
+// TODO: test that all of exported functions are accessible inside client code
+// TODO: test that only one exception reaches parser even if something failed couple of times
+// TODO: test that even rules parts are already compiled before first parse
+// TODO: test that chunk accessible only in action
+// TODO: test ctx is only in initializer, 
+//            ctx/cpos is in only in semantic and/not 
+//            and ctx/chunk is only in action
+// TODO: wrap in inner tests tree when changing to jasmine
+// TODO: test rname in MatchFailed error
+// TODO: test MatchFailed localisation? (use special codes for "any character" and the stuff)
 
+})();
