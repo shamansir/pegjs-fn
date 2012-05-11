@@ -156,7 +156,7 @@ test("semantic and", function() {
     '          b:"b" "c" . d:"d" &{',
     '            return cpos === 5',
     '              && xpos(cpos)[0] === 2',
-    '              && xpos(cpos)[1] === 1',
+    '              && xpos(cpos)[1] === 2',
     '              && ctx.b === "b"',
     '              && ctx.d === "d";',
     '          }',
@@ -164,7 +164,7 @@ test("semantic and", function() {
     '        "e"'
   ].join("\n"));
   parses(twoLineInnerElementsLabeledParser, 
-         "abc\nde", ["a", ["b", "c", "d", ""], "e"]);
+         "abc\nde", ["a", ["b", "c", '\n', "d", ""], "e"]);
 
   var digitsParser = PEG.buildParser([
     '{ ctx.result = "default"; }',
@@ -284,7 +284,7 @@ test("semantic not", function() {
     '          b:"b" "c" . d:"d" !{',
     '            return cpos !== 5',
     '              || xpos(cpos)[0] !== 2',
-    '              || xpos(cpos)[1] !== 1',
+    '              || xpos(cpos)[1] !== 2',
     '              || ctx.b !== "b"',
     '              || ctx.d !== "d";',
     '          }',
@@ -292,7 +292,7 @@ test("semantic not", function() {
     '        "e"'
   ].join("\n"));
   parses(twoLineInnerElementsLabeledParser, 
-         "abc\nde", ["a", ["b", "c", "d", ""], "e"]);
+         "abc\nde", ["a", ["b", "c", '\n', "d", ""], "e"]);
 
   var digitsParser = PEG.buildParser([
     '{ сtx.result = "default"; }',
