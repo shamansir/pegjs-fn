@@ -250,3 +250,23 @@ Development
 PEG.js is developed by [David Majda](http://majda.cz/) ([@dmajda](http://twitter.com/dmajda)). You are welcome to contribute code. Unless your contribution is really trivial you should get in touch with me first — this can prevent wasted effort on both sides. You can send code both as a patch or a GitHub pull request.
 
 Note that PEG.js is still very much work in progress. There are no compatibility guarantees until version 1.0.
+
+Building From Source
+--------------------
+
+Requirements are:
+
+  * Node.js 0.6.6+
+  * UglifyJS (`sudo npm install -g uglify-js`) >= 1.2.4
+
+If your environment meets the requirements, run this:
+
+    make clean parser dist
+
+To run benchmark, use:
+
+    make benchmark
+
+To run tests, use (you'll need `jasmine-node` >= 1.0.25):
+
+    make spec
