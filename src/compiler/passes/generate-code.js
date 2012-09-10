@@ -890,36 +890,6 @@ PEG.compiler.passes.generateCode = function(ast, options) {
     vars.string  = quote;
     vars.options = options;
 
-    vars.r = function(index) { return "r" + index; };
-
-    /* Position-handling macros */
-    if (options.trackLineAndColumn) {
-      vars.posInit    = function(name) {
-        return "var "
-             + name
-             + " = "
-             + "{ offset: 0, line: 1, column: 1, seenCR: false }";
-      };
-      vars.posClone   = function(name) { return "clone(" + name + ")"; };
-      vars.posOffset  = function(name) { return name + ".offset"; };
-
-      vars.posAdvance = function(n)    { return "advance(pos, " + n + ")"; };
-    } else {
-      vars.posInit    = function(name) { return "var " + name + " = 0"; };
-      vars.posClone   = function(name) { return name; };
-      vars.posOffset  = function(name) { return name; };
-
-      vars.posAdvance = function(n) {
-        return n === 1 ? "pos++" : "pos += " + n;
-      };
-    }
-    vars.posSave    = function(node) {
-      return vars.r(node.posIndex) + " = " + vars.posClone("pos");
-    };
-    vars.posRestore = function(node) {
-      return "pos" + " = " + vars.posClone(vars.r(node.posIndex));
-    };
-
     return templates[name](vars);
   }
 
