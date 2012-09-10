@@ -786,187 +786,96 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             '})()'
           ],
           rule: [
-            'function parse_#{node.name}() {',
-            '  #if options.cache',
-            '    var cacheKey = "#{node.name}@" + #{posOffset("pos")};',
-            '    var cachedResult = cache[cacheKey];',
-            '    if (cachedResult) {',
-            '      pos = #{posClone("cachedResult.nextPos")};',
-            '      return cachedResult.result;',
-            '    }',
-            '    ',
-            '  #end',
-            '  #if node.registerCount > 0',
-            '    var #{map(range(node.registerCount), r).join(", ")};',
-            '  #end',
-            '  ',
-            '  #block emit(node.expression)',
-            '  #if options.cache',
-            '    ',
-            '    cache[cacheKey] = {',
-            '      nextPos: #{posClone("pos")},',
-            '      result:  #{r(node.expression.resultIndex)}',
-            '    };',
-            '  #end',
-            '  return #{r(node.expression.resultIndex)};',
-            '}'
-          ],
-          named: [
-            'reportFailures++;',
-            '#block emit(node.expression)',
-            'reportFailures--;',
-            'if (reportFailures === 0 && #{r(node.resultIndex)} === null) {',
-            '  matchFailed(#{string(node.name)});',
-            '}'
+            'rules.#{node.name} = function() {',
+            '  return (',
+            '    #block code',
+            '  ());',
+            '}', // FIXME: displayName!
+            '#if node.displayName',
+            '  names.#{node.name}=#{string(node.displayName)};',
+            '#end'
           ],
           choice: [
-            '#block emit(alternative)',
-            '#block nextAlternativesCode'
-          ],
-          "choice.next": [
-            'if (#{r(node.resultIndex)} === null) {',
-            '  #block code',
-            '}'
-          ],
-          action: [
-            '#{posSave(node)};',
-            '#block emit(node.expression)',
-            'if (#{r(node.resultIndex)} !== null) {',
-            '  #{r(node.resultIndex)} = (function(#{(options.trackLineAndColumn ? ["offset", "line", "column"] : ["offset"]).concat(keys(node.params)).join(", ")}) {#{node.code}})(#{(options.trackLineAndColumn ? [r(node.posIndex) + ".offset", r(node.posIndex) + ".line", r(node.posIndex) + ".column"] : [r(node.posIndex)]).concat(map(values(node.params), r)).join(", ")});',
-            '}',
-            'if (#{r(node.resultIndex)} === null) {',
-            '  #{posRestore(node)};',
-            '}'
+            'choice(',
+            '  #for expression in beforeLast',
+            '    #block expression',
+            '  #end',
+            '  #block last',
+            ')'
           ],
           sequence: [
-            '#{posSave(node)};',
-            '#block code'
+            '#if last !== null',
+            '  seqnc(',
+            '    #for expression in beforeLast',
+            '      #block expression',
+            '    #end',
+            '    #block last',
+            '  )',
+            '#else',
+            '  seqnc()',
+            '#end'
           ],
-          "sequence.iteration": [
-            '#block emit(element)',
-            'if (#{r(element.resultIndex)} !== null) {',
-            '  #block code',
-            '} else {',
-            '  #{r(node.resultIndex)} = null;',
-            '  #{posRestore(node)};',
-            '}'
+          labeled: [
+            'label(#{string(node.label)},',
+            '  #block expression',
+            ')'
           ],
-          "sequence.inner": [
-            '#{r(node.resultIndex)} = [#{map(pluck(node.elements, "resultIndex"), r).join(", ")}];'
-          ],
+          // TODO: compose all similar templates into one?
           simple_and: [
-            '#{posSave(node)};',
-            'reportFailures++;',
-            '#block emit(node.expression)',
-            'reportFailures--;',
-            'if (#{r(node.resultIndex)} !== null) {',
-            '  #{r(node.resultIndex)} = "";',
-            '  #{posRestore(node)};',
-            '} else {',
-            '  #{r(node.resultIndex)} = null;',
-            '}'
+            'and(',
+            '  #block expression',
+            ')'
           ],
           simple_not: [
-            '#{posSave(node)};',
-            'reportFailures++;',
-            '#block emit(node.expression)',
-            'reportFailures--;',
-            'if (#{r(node.resultIndex)} === null) {',
-            '  #{r(node.resultIndex)} = "";',
-            '} else {',
-            '  #{r(node.resultIndex)} = null;',
-            '  #{posRestore(node)};',
-            '}'
+            'not(',
+            '  #block expression',
+            ')'
           ],
           semantic_and: [
-            '#{r(node.resultIndex)} = (function(#{(options.trackLineAndColumn ? ["offset", "line", "column"] : ["offset"]).concat(keys(node.params)).join(", ")}) {#{node.code}})(#{(options.trackLineAndColumn ? ["pos.offset", "pos.line", "pos.column"] : ["pos"]).concat(map(values(node.params), r)).join(", ")}) ? "" : null;'
+            'pre(function(ctx) {',
+            '  #block code',
+            '})'
           ],
           semantic_not: [
-            '#{r(node.resultIndex)} = (function(#{(options.trackLineAndColumn ? ["offset", "line", "column"] : ["offset"]).concat(keys(node.params)).join(", ")}) {#{node.code}})(#{(options.trackLineAndColumn ? ["pos.offset", "pos.line", "pos.column"] : ["pos"]).concat(map(values(node.params), r)).join(", ")}) ? null : "";'
+            'xpre(function(ctx) {',
+            '  #block code',
+            '})'
           ],
           optional: [
-            '#block emit(node.expression)',
-            '#{r(node.resultIndex)} = #{r(node.resultIndex)} !== null ? #{r(node.resultIndex)} : "";'
+            'maybe(',
+            '  #block expression',
+            ')'
           ],
           zero_or_more: [
-            '#{r(node.resultIndex)} = [];',
-            '#block emit(node.expression)',
-            'while (#{r(node.expression.resultIndex)} !== null) {',
-            '  #{r(node.resultIndex)}.push(#{r(node.expression.resultIndex)});',
-            '  #block emit(node.expression)',
-            '}'
+            'any(',
+            '  #block expression',
+            ')'
           ],
           one_or_more: [
-            '#block emit(node.expression)',
-            'if (#{r(node.expression.resultIndex)} !== null) {',
-            '  #{r(node.resultIndex)} = [];',
-            '  while (#{r(node.expression.resultIndex)} !== null) {',
-            '    #{r(node.resultIndex)}.push(#{r(node.expression.resultIndex)});',
-            '    #block emit(node.expression)',
+            'some(',
+            '  #block expression',
+            ')'
+          ],
+          action: [
+            'action(',
+            '  #block expression',
+            '  function(ctx, chunk) {',
+            '    #block node.code',
             '  }',
-            '} else {',
-            '  #{r(node.resultIndex)} = null;',
-            '}'
+            ')'
           ],
           rule_ref: [
-            '#{r(node.resultIndex)} = parse_#{node.name}();'
+            'ref(rules.#{node.name})'
           ],
           literal: [
-            '#if node.value.length === 0',
-            '  #{r(node.resultIndex)} = "";',
+            '#if !node.ignoreCase',
+            '  match(#{string(node.value)})',
             '#else',
-            '  #if !node.ignoreCase',
-            '    #if node.value.length === 1',
-            '      if (input.charCodeAt(#{posOffset("pos")}) === #{node.value.charCodeAt(0)}) {',
-            '    #else',
-            '      if (input.substr(#{posOffset("pos")}, #{node.value.length}) === #{string(node.value)}) {',
-            '    #end',
-            '  #else',
-            /*
-             * One-char literals are not optimized when case-insensitive
-             * matching is enabled. This is because there is no simple way to
-             * lowercase a character code that works for character outside ASCII
-             * letters. Moreover, |toLowerCase| can change string length,
-             * meaning the result of lowercasing a character can be more
-             * characters.
-             */
-            '    if (input.substr(#{posOffset("pos")}, #{node.value.length}).toLowerCase() === #{string(node.value.toLowerCase())}) {',
-            '  #end',
-            '    #if !node.ignoreCase',
-            '      #{r(node.resultIndex)} = #{string(node.value)};',
-            '    #else',
-            '      #{r(node.resultIndex)} = input.substr(#{posOffset("pos")}, #{node.value.length});',
-            '    #end',
-            '    #{posAdvance(node.value.length)};',
-            '  } else {',
-            '    #{r(node.resultIndex)} = null;',
-            '    if (reportFailures === 0) {',
-            '      matchFailed(#{string(string(node.value))});',
-            '    }',
-            '  }',
+            '  re(/#{node.value}/i, quote(#{string(node.value)}))',
             '#end'
           ],
           "class": [
-            'if (#{regexp}.test(input.charAt(#{posOffset("pos")}))) {',
-            '  #{r(node.resultIndex)} = input.charAt(#{posOffset("pos")});',
-            '  #{posAdvance(1)};',
-            '} else {',
-            '  #{r(node.resultIndex)} = null;',
-            '  if (reportFailures === 0) {',
-            '    matchFailed(#{string(node.rawText)});',
-            '  }',
-            '}'
-          ],
-          any: [
-            'if (input.length > #{posOffset("pos")}) {',
-            '  #{r(node.resultIndex)} = input.charAt(#{posOffset("pos")});',
-            '  #{posAdvance(1)};',
-            '} else {',
-            '  #{r(node.resultIndex)} = null;',
-            '  if (reportFailures === 0) {',
-            '    matchFailed("any character");',
-            '  }',
-            '}'
+            're(#{regexp}, #{string(rawText)})'
           ]
         };
 
@@ -979,12 +888,6 @@ PEG.compiler.passes.generateCode = function(ast, options) {
 
   function fill(name, vars) {
     vars.string  = quote;
-    vars.range   = range;
-    vars.map     = map;
-    vars.pluck   = pluck;
-    vars.keys    = keys;
-    vars.values  = values;
-    vars.emit    = emit;
     vars.options = options;
 
     vars.r = function(index) { return "r" + index; };
