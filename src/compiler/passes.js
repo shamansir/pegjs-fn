@@ -11,5 +11,6 @@ PEG.compiler.passes = {};
 // @include "passes/report-left-recursion.js"
 // @include "passes/remove-proxy-rules.js"
 // @include "passes/compute-occurences.js"
+// @include "passes/collect-blocks.js"
 // @include "passes/allocate-registers.js"
 // @include "passes/generate-code.js"

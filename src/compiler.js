@@ -8,6 +8,7 @@ PEG.compiler = {
     "reportLeftRecursion",
     "removeProxyRules",
     "computeOccurences",
+    "collectBlocks",
     "allocateRegisters",
     "generateCode"
   ],

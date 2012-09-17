@@ -537,6 +537,19 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             '    seqnc = def(seqnc);',
             '  ',
             '  #end',
+            // named =============
+            '  #if stats.named',
+            '    function named(/*...*/) {',
+            '      return \'TODO\'',
+            '    }',
+            '    named = def(named);',
+              /*'reportFailures++;',
+              '#block emit(node.expression)',
+              'reportFailures--;',
+              'if (reportFailures === 0 && #{r(node.resultIndex)} === null) {',
+              '  matchFailed(#{string(node.name)});',
+              '}'*/
+            '  #end',
             // choice ============
             '  #if stats.choice',
             '    function choice(/*f...*/) {',
@@ -933,6 +946,8 @@ PEG.compiler.passes.generateCode = function(ast, options) {
     },
 
     // ======= COMBINATIONS =======
+
+    named: function(node) { return fill('named', { node: node }); },
 
     choice: function(node) {
       var elms = node.alternatives;
