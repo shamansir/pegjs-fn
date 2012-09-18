@@ -84,7 +84,7 @@ PEG.compiler.passes.allocateRegisters = function(ast) {
       endScope: function() {
         var env = envs.pop(), name;
 
-        for (name in env) {
+        for (var name in env) {
           registers.release(env[name]);
         }
       },
@@ -97,7 +97,7 @@ PEG.compiler.passes.allocateRegisters = function(ast) {
       buildParams: function() {
         var env = envs[envs.length - 1], params = {}, name;
 
-        for (name in env) {
+        for (var name in env) {
           params[name] = env[name];
         }
 

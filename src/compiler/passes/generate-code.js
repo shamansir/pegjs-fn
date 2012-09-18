@@ -73,7 +73,7 @@ PEG.compiler.passes.generateCode = function(ast, options) {
 
   var Codie = {
     /* Codie version (uses semantic versioning). */
-    VERSION: "1.1.0",
+    VERSION: "1.1.0m", // modified a bit by shaman.sir
 
     /*
      * Specifies by how many characters do #if/#else and #for unindent their
@@ -123,10 +123,11 @@ PEG.compiler.passes.generateCode = function(ast, options) {
           // FIXME: add 'isLast' and fix all rules here who cry of its lack
 
           return [
-            c + '=' + params[1] + ';'
-              + l + '=' + c + '.length;'
-              + 'for(' + i + '=0;' + i + '<' + l + ';' + i + '++){'
-              + params[0] + '=' + c + '[' + i + '];',
+            'var ' + c + '=' + params[1] + ','
+                   + l + '=' + c + '.length;'
+             + 'for(' + i + '=0;' + i + '<' + l + ';' + i + '++){'
+                + 'var isLast = (' + i + '==' + l + '-1);'
+                + 'var ' + params[0] + '=' + c + '[' + i + '];',
             [params[0], c, l, i]
           ];
         },
@@ -161,13 +162,13 @@ PEG.compiler.passes.generateCode = function(ast, options) {
            * tests for details.
            */
           return [
-            x + '="' + stringEscape(prefix.substring(state.indentLevel())) + '";'
-              + n + '=(' + params[0] + ').toString().split("\\n");'
-              + l + '=' + n + '.length;'
-              + 'for(' + i + '=0;' + i + '<' + l + ';' + i + '++){'
-              + n + '[' + i +']=' + x + '+' + n + '[' + i + ']+"\\n";'
-              + '}'
-              + push(n + '.join("")'),
+            'var ' + x + '="' + stringEscape(prefix.substring(state.indentLevel())) + '",'
+                   + n + '=(' + params[0] + ').toString().split("\\n"),'
+                   + l + '=' + n + '.length;'
+          + 'for(var ' + i + '=0;' + i + '<' + l + ';' + i + '++){'
+               + n + '[' + i + ']=' + x + '+' + n + '[' + i + ']+"\\n";'
+          + '}'
+          + push(n + '.join("")'),
             [x, n, l, i]
           ];
         },
@@ -224,7 +225,7 @@ PEG.compiler.passes.generateCode = function(ast, options) {
           name, match, result, i;
 
       /* Initialize state. */
-      for (name in Codie.commands) {
+      for (var name in Codie.commands) {
         if (Codie.commands[name].init) { Codie.commands[name].init(state); }
       }
 
@@ -245,7 +246,7 @@ PEG.compiler.passes.generateCode = function(ast, options) {
 
       /* Sanitize the list of variables used by commands. */
       vars.sort();
-      for (i = 0; i < vars.length; i++) {
+      for (var i = 0; i < vars.length; i++) {
         if (vars[i] === vars[i - 1]) { vars.splice(i--, 1); }
       }
 
@@ -285,14 +286,19 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             '    return {',
             '      #for rule in rulesNames',
             '        #if blocks[rule]',
+            // TODO: generate integer constants for rules ids
             '          #{string(rule)}: [',
             '             #for userBlock in blocks[rule]',
             '               function(cctx) {',
             '                 return (function(/*...*/) {',
-            '                   // TODO: we may predict labels when collecting blocks',
+            // TODO: we may predict labels when collecting blocks'
             '                   #block userBlock',
             '                 })(/**/);',
-            '               }, // FIXME: remove last comma',
+            '               #if !isLast',
+            '                 },',
+            '               #else',
+            '                 }',
+            '               #end',
             '             #end',
             '          ]',
             '        #end',
@@ -744,7 +750,7 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             // TODO: add only those 'any/some/literal...'-function that factually used
             '  ',
             '  var ckey; // cache key',
-            '  for (rule in rules) {',
+            '  for (var rule in rules) {',
             '    rules[rule] = (function(name, rule) {',
             '      return function() {',
             '        current = name;',
@@ -916,7 +922,7 @@ PEG.compiler.passes.generateCode = function(ast, options) {
           ]
         };
 
-    for (name in sources) {
+    for (var name in sources) {
       templates[name] = Codie.template(sources[name].join('\n'));
     }
 
