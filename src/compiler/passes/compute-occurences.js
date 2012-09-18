@@ -7,9 +7,7 @@ PEG.compiler.passes.computeOccurences = function(ast) {
     // also, may be write a walker that smartly walks deep in standard AST tree
     var compute = buildNodeVisitor({
       grammar: function(node) {
-        for (var name in node.rules) {
-          compute(node.rules[name]);
-        }
+        each(node.rules, compute);
 
         node.stats = stats;
       },
@@ -43,7 +41,7 @@ PEG.compiler.passes.computeOccurences = function(ast) {
     // UTILS
 
     function goDeep(node) {
-        compute(node.expession);
+        compute(node.expression);
     }
 
     function justAdd(name) {
@@ -55,7 +53,7 @@ PEG.compiler.passes.computeOccurences = function(ast) {
     function addAndGoDeep(name) {
         return function(node) {
             stats[name] = (stats[name] || 0)+1;
-            compute(node.expession);
+            compute(node.expression);
         }
     }
 

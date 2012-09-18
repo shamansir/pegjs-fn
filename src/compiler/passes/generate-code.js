@@ -280,21 +280,22 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             '    #end',
             '    ',
             '    /* BLOCKS */',
-            /*'    return {',
+            '    return {',
             '      #for rule in rulesNames',
-            '        #if blocks[rule]'
+            '        #if blocks[rule]',
             '          #{string(rule)}: [',
             '             #for userBlock in blocks[rule]',
             '               function(cctx) {',
-            '                  return ',
-            '                     #block userBlock',
-            '               }',
+            '                 return (function(/*...*/) {',
+            '                   #block userBlock',
+            '                 })(/**/);',
+            '               }, // FIXME: remove last comma',
             '             #end',
-            '          ],'
+            '          ]',
             '        #end',
             '      #end',
             '    }',
-            '  }',*/
+            '  }',
             '  var __blocks = null;',
             '  ',
             /* =============== UTILS ===================== */
@@ -937,19 +938,16 @@ PEG.compiler.passes.generateCode = function(ast, options) {
         : "";
 
       var rulesDefs = [];
-      for (var name in node.rules) {
-        rulesDefs.push(emit(node.rules[name]));
-      }
-
       var rulesNames = [];
-      for (var name in node.rules) {
-        rulesNames.push(name);
-      }
+      each(node.rules, function(subnode) {
+        rulesDefs.push(emit(subnode));
+        rulesNames.push(subnode.name);
+      });
 
       return fill("grammar", {
         initializer:    initializer,
         initializerDef: (initializer !== ""),
-        ruleNames:      rulesNames,
+        rulesNames:     rulesNames,
         rulesDefs:      rulesDefs,
         startRule:      node.startRule,
         blocks:         node.blocks,

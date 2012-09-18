@@ -9,10 +9,10 @@ PEG.compiler.passes.collectBlocks = function(ast) {
     var collect = buildNodeVisitor({
 
       grammar: function(node) {
-        for (var name in node.rules) {
-          curRule = name;
-          collect(node.rules[name]);
-        }
+        each(node.rules, function(rule) {
+          curRule = rule.name;
+          collect(rule);
+        });
 
         node.blocks = blocks;
       },
@@ -45,7 +45,7 @@ PEG.compiler.passes.collectBlocks = function(ast) {
                ? blocks[curRule].length : 0;
         node.blockId = '['+curRule+']['+bl+']';
         if (bl == 0) blocks[curRule] = [];
-        blocks[curRule].push(node.code);
+        blocks[curRule].push(node.code+';');
     }
 
     function collectInExpression(node) {
