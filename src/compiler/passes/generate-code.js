@@ -120,6 +120,8 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             state.forMaxLevel = state.forCurrLevel;
           }
 
+          // FIXME: add 'isLast' and fix all rules here who cry of its lack
+
           return [
             c + '=' + params[1] + ';'
               + l + '=' + c + '.length;'
@@ -287,6 +289,7 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             '             #for userBlock in blocks[rule]',
             '               function(cctx) {',
             '                 return (function(/*...*/) {',
+            '                   // TODO: we may predict labels when collecting blocks',
             '                   #block userBlock',
             '                 })(/**/);',
             '               }, // FIXME: remove last comma',

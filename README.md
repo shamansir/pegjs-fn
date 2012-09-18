@@ -1,7 +1,11 @@
-PEG.js
-======
+PEG.js IMproved
+===============
 
 PEG.js is a simple parser generator for JavaScript that produces fast parsers with excellent error reporting. You can use it to process complex data or computer languages and build transformers, interpreters, compilers and other tools easily.
+
+_IMproved_ is the modified version of [standard `PEG.js`](http://pegjs.majda.cz) which generates much more human-readable and compact parsers, it is a benefit especially when your grammar has a lot of complex expressions.
+
+(Development is in progress and even this file is in progress)
 
 Features
 --------
@@ -11,6 +15,15 @@ Features
   * Parsers have excellent error reporting out of the box
   * Based on [parsing expression grammar](http://en.wikipedia.org/wiki/Parsing_expression_grammar) formalism — more powerful than traditional LL(*k*) and LR(*k*) parsers
   * Usable [from your browser](http://pegjs.majda.cz/online), from the command line, or via JavaScript API
+
+### PEG.js IMproved
+
+  * Generated parsers are more human-readable and much more compact (see comparison below)
+  * A virtual JS context is created for user code, so it lies in its own separate environment
+  * The operators that not used in grammar are not added to parser code
+  * `chunk` variable is accessible to actions, it stores current chunk of input and its start and end positions
+  * The parser code that should be executed once — is executed once (this was also fixed in the main version, however)
+  <!-- * The actions variables are strict and given in as arguments to action code -->
 
 Getting Started
 ---------------
@@ -226,6 +239,32 @@ Note that curly braces in the action code must be balanced.
 
 Try to match the first expression, if it does not succeed, try the second one, etc. Return the match result of the first successfully matched expression. If no expression matches, consider the match failed.
 
+Building From Source
+--------------------
+
+Requirements are:
+
+  * Node.js 0.6.6+
+  * UglifyJS (`sudo npm install -g uglify-js`) >= 1.2.4
+  * Optionally, JSHint (`sudo npm install -g jshint`) >= 0.5.5
+  * Optionally, Jasmine (`sudo npm install -g jasmine-node`) >= 1.0.25
+
+If your environment meets the requirements, run this:
+
+    make clean parser dist
+
+Now, if you ever change the code, you may eventually run:
+
+    make dist
+
+To run benchmark, use:
+
+    make benchmark
+
+To run test specifications, use (you'll need Jasmine):
+
+    make spec
+
 Compatibility
 -------------
 
@@ -250,23 +289,3 @@ Development
 PEG.js is developed by [David Majda](http://majda.cz/) ([@dmajda](http://twitter.com/dmajda)). You are welcome to contribute code. Unless your contribution is really trivial you should get in touch with me first — this can prevent wasted effort on both sides. You can send code both as a patch or a GitHub pull request.
 
 Note that PEG.js is still very much work in progress. There are no compatibility guarantees until version 1.0.
-
-Building From Source
---------------------
-
-Requirements are:
-
-  * Node.js 0.6.6+
-  * UglifyJS (`sudo npm install -g uglify-js`) >= 1.2.4
-
-If your environment meets the requirements, run this:
-
-    make clean parser dist
-
-To run benchmark, use:
-
-    make benchmark
-
-To run tests, use (you'll need `jasmine-node` >= 1.0.25):
-
-    make spec
