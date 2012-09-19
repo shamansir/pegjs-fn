@@ -840,19 +840,29 @@ PEG.compiler.passes.generateCode = function(ast, options) {
           ],
           choice: [
             'choice(',
-            '  #for expression in beforeLast',
+            '  #for expression in expressions',
+            '    (',
             '    #block expression',
+            '    #if !isLast',
+            '      ),',
+            '    #else',
+            '      )',
+            '    #end',
             '  #end',
-            '  #block last',
             ')'
           ],
           sequence: [
-            '#if last !== null',
+            '#if expressions.length > 0',
             '  seqnc(',
-            '    #for expression in beforeLast',
+            '    #for expression in expressions',
+            '      (',
             '      #block expression',
+            '      #if !isLast',
+            '        ),',
+            '      #else',
+            '        )',
+            '      #end',
             '    #end',
-            '    #block last',
             '  )',
             '#else',
             '  seqnc()',
@@ -981,32 +991,24 @@ PEG.compiler.passes.generateCode = function(ast, options) {
 
     choice: function(node) {
       var elms = node.alternatives;
-      var beforeLast = [];
-      for (var i = 0; i < (elms.length - 1); i++) {
-        beforeLast.push(emit(elms[i]) + ','); // FIXME: may be appending
-                                              // comma here is not ok
-      };
+      var expressions = [];
 
-      var last = emit(elms[elms.length - 1]);
+      for (var i = 0, il = elms.length; i < il; i++) {
+        expressions.push(emit(elms[i]));
+      }
 
-      return fill("choice", { beforeLast: beforeLast,
-                              last: last });
+      return fill("choice", { expressions: expressions });
     },
 
     sequence: function(node) {
       var elms = node.elements;
-      var beforeLast = [];
-      for (var i = 0; i < (elms.length - 1); i++) {
-        beforeLast.push(emit(elms[i]) + ','); // FIXME: may be appending
-                                              // comma here is not ok
-      };
+      var expressions = [];
 
-      var last = (elms.length > 0)
-                 ? emit(elms[elms.length - 1])
-                 : null;
+      for (var i = 0, il = elms.length; i < il; i++) {
+        expressions.push(emit(elms[i]));
+      }
 
-      return fill("sequence", { beforeLast: beforeLast,
-                                last: last });
+      return fill("sequence", { expressions: expressions });
     },
 
     labeled: function(node) {
