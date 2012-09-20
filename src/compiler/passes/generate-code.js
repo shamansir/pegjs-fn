@@ -893,14 +893,20 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             ')'
           ],
           semantic_and: [
-            'pre(function(ctx) {',
-            '  #block code',
-            '})'
+            'pre(',
+            '  __blocks.#{node.blockAddr.rule}[#{node.blockAddr.id}]',
+            '  /* function(...) {',
+            '    #block node.code',
+            '  } */',
+            ')'
           ],
           semantic_not: [
-            'xpre(function(ctx) {',
-            '  #block code',
-            '})'
+            'xpre(',
+            '  __blocks.#{node.blockAddr.rule}[#{node.blockAddr.id}]',
+            '  /* function(...) {',
+            '    #block node.code',
+            '  } */',
+            ')'
           ],
           optional: [
             'maybe(',
@@ -920,9 +926,10 @@ PEG.compiler.passes.generateCode = function(ast, options) {
           action: [
             'action(',
             '  #block expression',
-            '  function(ctx, chunk) {',
+            '  , __blocks.#{node.blockAddr.rule}[#{node.blockAddr.id}]',
+            '  /* function(...) {',
             '    #block node.code',
-            '  }',
+            '  } */',
             ')'
           ],
           rule_ref: [
@@ -1035,11 +1042,11 @@ PEG.compiler.passes.generateCode = function(ast, options) {
     },
 
     semantic_and: function(node) {
-      return fill("semantic_and", { code: node.code });
+      return fill("semantic_and", { node: node });
     },
 
     semantic_not: function(node) {
-      return fill("semantic_not", { code: node.code });
+      return fill("semantic_not", { node: node });
     },
 
     optional: function(node) {
@@ -1060,8 +1067,7 @@ PEG.compiler.passes.generateCode = function(ast, options) {
     action: function(node) {
       return fill("action", {
         node: node,
-        expression: emit(node.expression) + ',' // FIXME: may be appending
-                                                // comma here is not ok
+        expression: emit(node.expression)
       });
     },
 

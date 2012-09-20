@@ -43,9 +43,11 @@ PEG.compiler.passes.collectBlocks = function(ast) {
     function saveBlock(node) {
         var bl = blocks[curRule]
                ? blocks[curRule].length : 0;
-        node.blockId = '['+curRule+']['+bl+']';
+        node.blockAddr = {
+                rule: curRule,
+                id: bl };
         if (bl == 0) blocks[curRule] = [];
-        blocks[curRule].push(node.code+';');
+        blocks[curRule].push(node.code);
     }
 
     function collectInExpression(node) {
