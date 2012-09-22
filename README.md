@@ -20,7 +20,7 @@ Features
 
   * Generated parsers are more human-readable and much more compact (see comparison below)
   * A virtual JS context is created for user code, so it lies in its own separate environment
-  * The operators that not used in grammar are not added to parser code
+  * The operators and utils functions that not used in grammar are not included to parser code
   * `chunk` variable is accessible to actions, it stores current chunk of input and its start and end positions
   * The parser code that should be executed once — is executed once (this was also fixed in the main version, however)
   <!-- * The actions variables are strict and given in as arguments to action code -->
