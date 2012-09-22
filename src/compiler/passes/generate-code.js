@@ -120,18 +120,18 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             state.forMaxLevel = state.forCurrLevel;
           }
 
-          // FIXME: add 'isLast' and fix all rules here who cry of its lack
-
           return [
-            'var ' + c + '=' + params[1] + ','
-                   + l + '=' + c + '.length;'
-             + 'for(' + i + '=0;' + i + '<' + l + ';' + i + '++){'
-                + 'var isLast = (' + i + '==' + l + '-1);'
+            '(function(){'
+             + 'var ' + c + '=' + params[1] + ','
+                      + l + '=' + c + '.length;'
+             + 'for(var ' + i + '=0;' + i + '<' + l + ';' + i + '++){'
+                + 'var isLast = (' + i + '==(' + l + '-1));'
                 + 'var ' + params[0] + '=' + c + '[' + i + '];',
             [params[0], c, l, i]
           ];
         },
-        exit:    function(state) { state.forCurrLevel--; },
+        exit:    function(state) { state.forCurrLevel--;
+                                   return ['}})();', []]; },
         stackOp: "push"
       },
       "end":  {
@@ -142,12 +142,14 @@ PEG.compiler.passes.generateCode = function(ast, options) {
           if (stack.length === 0) { throw new Error("Too many #ends."); }
 
           exit = Codie.commands[stack[stack.length - 1]].exit;
-          if (exit) { exit(state); }
+          if (exit) { return exit(state); };
 
           return ['}', []];
         },
         stackOp: "pop"
       },
+      // TODO: inline-block
+      // TODO: add postfix for block
       "block": {
         params: /^(.*)$/,
         compile: function(state, prefix, params) {
@@ -278,8 +280,9 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             '  /* PARSER ENVIRONMENT */',
             '  ',
             '  var __parser = function() {',
-            '    /* INITIALIZER */',
+            '    ',
             '    #if initializerDef',
+            '      /* INITIALIZER */',
             '      #block initializer',
             '    #end',
             '    ',
@@ -289,19 +292,23 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             '        #if blocks[rule]',
             // TODO: generate integer constants for rules ids
             '          #{string(rule)}: [',
-            '             #for userBlock in blocks[rule]',
-            '               function(cctx) {',
-            '                 return (function(/*...*/) {',
+            '            #for userBlock in blocks[rule]',
+            '              function(cctx) {',
+            '                return (function(/*...*/) {',
             // TODO: we may predict labels when collecting blocks'
-            '                   #block userBlock',
-            '                 })(/**/);',
-            '               #if !isLast',
-            '                 },',
-            '               #else',
-            '                 }',
-            '               #end',
-            '             #end',
-            '          ]',
+            '                  #block userBlock',
+            '                })(/**/);',
+            '              #if !isLast',
+            '                },',
+            '              #else',
+            '                }',
+            '              #end',
+            '            #end',
+            '          #if !isLast',
+            '            ],',
+            '          #else',
+            '            ]',
+            '          #end',
             '        #end',
             '      #end',
             '    }',
@@ -894,18 +901,18 @@ PEG.compiler.passes.generateCode = function(ast, options) {
           ],
           semantic_and: [
             'pre(',
-            '  __blocks.#{node.blockAddr.rule}[#{node.blockAddr.id}]',
+            '  __blocks.#{node.blockAddr.rule}[#{node.blockAddr.id}](cctx)',
             '  /* function(...) {',
-            '    #block node.code',
-            '  } */',
+            '       #block node.code',
+            '     } */',
             ')'
           ],
           semantic_not: [
             'xpre(',
-            '  __blocks.#{node.blockAddr.rule}[#{node.blockAddr.id}]',
+            '  __blocks.#{node.blockAddr.rule}[#{node.blockAddr.id}](cctx)',
             '  /* function(...) {',
-            '    #block node.code',
-            '  } */',
+            '       #block node.code',
+            '     } */',
             ')'
           ],
           optional: [
@@ -924,12 +931,12 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             ')'
           ],
           action: [
-            'action(',
-            '  #block expression',
-            '  , __blocks.#{node.blockAddr.rule}[#{node.blockAddr.id}]',
+            'action((',
+            '    #block expression',
+            '  ), __blocks.#{node.blockAddr.rule}[#{node.blockAddr.id}](cctx)',
             '  /* function(...) {',
-            '    #block node.code',
-            '  } */',
+            '       #block node.code',
+            '     } */',
             ')'
           ],
           rule_ref: [

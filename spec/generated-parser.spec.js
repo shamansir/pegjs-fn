@@ -118,6 +118,7 @@ describe("generated parser", function() {
   });
 
   describe("parse", function() {
+
     var parser = PEG.buildParser([
           'a = "x" { return "a"; }',
           'b = "x" { return "b"; }'
