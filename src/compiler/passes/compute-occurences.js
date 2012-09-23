@@ -41,20 +41,20 @@ PEG.compiler.passes.computeOccurences = function(ast) {
     // UTILS
 
     function goDeep(node) {
-        compute(node.expression);
+      compute(node.expression);
     }
 
     function justAdd(name) {
-        return function(node) {
-            stats[name] = (stats[name] || 0)+1;
-        }
+      return function(node) {
+        stats[name] = (stats[name] || 0)+1;
+      }
     }
 
     function addAndGoDeep(name) {
-        return function(node) {
-            stats[name] = (stats[name] || 0)+1;
-            compute(node.expression);
-        }
+      return function(node) {
+        stats[name] = (stats[name] || 0)+1;
+        compute(node.expression);
+      }
     }
 
     function addAndGoThrough(name, prop) {

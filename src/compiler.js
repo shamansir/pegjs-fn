@@ -9,8 +9,7 @@ PEG.compiler = {
     "removeProxyRules",
     "computeOccurences",
     "collectBlocks",
-    "collectContextData",
-    "allocateRegisters",
+    "collectLabels",
     "generateCode"
   ],
 
