@@ -279,41 +279,46 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             /* =============== USER BLOCK ================ */
             '  /* PARSER ENVIRONMENT */',
             '  ',
-            '  var __parser = function() {',
-            '    ',
-            '    #if initializerDef',
-            '      /* INITIALIZER */',
-            '      #block initializer',
-            '    #end',
-            '    ',
-            '    /* BLOCKS */',
-            '    return {',
-            '      #for rule in rulesNames',
-            '        #if blocks[rule]',
+            '  #if initializerDef || blocksDef',
+            '    var __parser = function() {',
+            '      #if initializerDef',
+            '        /* INITIALIZER */',
+            '        #block initializer',
+            '      ',
+            '      #end',
+            '      #if blocksDef',
+            '        /* BLOCKS */',
+            '        return {',
+            '          #for rule in rulesNames',
+            '            #if blocks[rule]',
             // TODO: generate integer constants for rules ids
-            '          #{string(rule)}: [',
-            '            #for userBlock in blocks[rule]',
-            '              function(cctx) {',
-            '                return (function(/*...*/) {',
+            '              #{string(rule)}: [',
+            '                #for userBlock in blocks[rule]',
+            '                  function(cctx) {',
+            '                    return (function(#{userBlock.params}) {',
             // TODO: we may predict labels when collecting blocks'
-            '                  #block userBlock',
-            '                })(/**/);',
+            '                      #block userBlock.code',
+            '                    })(/**/);',
+            '                  #if !isLast',
+            '                    },',
+            '                  #else',
+            '                    }',
+            '                  #end',
+            '                #end',
             '              #if !isLast',
-            '                },',
+            '                ],',
             '              #else',
-            '                }',
+            '                ]',
             '              #end',
             '            #end',
-            '          #if !isLast',
-            '            ],',
-            '          #else',
-            '            ]',
             '          #end',
-            '        #end',
+            '        };',
+            '      #else',
+            '        return {};',
             '      #end',
             '    }',
-            '  }',
-            '  var __blocks = null;',
+            '    var ƒ = null;',
+            '  #end',
             '  ',
             '  /* PARSER CODE */',
             '  ',
@@ -797,10 +802,12 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             '        ctxl = 0; ctx = ctx_lvl(), cctx = ctx;',
             '        current = \'-\';',
             '        ',
-            '        __blocks = __parser();', // call user initializer
-                                              // and also get blocks lying
-                                              // in the same context
-            '        ',
+            '        #if initializerDef || blocksDef',
+            '          // call user initializer and also',
+            '          // get blocks lying in the same context',
+            '          ƒ = __parser();',
+            '          ',
+            '        #end',
             '        // find start rule',
             '        if (startRule !== undefined) {',
             '          if (rules[startRule] === undefined) {',
@@ -856,29 +863,19 @@ PEG.compiler.passes.generateCode = function(ast, options) {
           ],
           choice: [
             'choice(',
-            '  #for expression in expressions',
-            '    (',
+            '  #for expression in beforeLast',
             '    #block expression',
-            '    #if !isLast',
-            '      ),',
-            '    #else',
-            '      )',
-            '    #end',
             '  #end',
+            '  #block last',
             ')'
           ],
           sequence: [
-            '#if expressions.length > 0',
+            '#if last !== null',
             '  seqnc(',
-            '    #for expression in expressions',
-            '      (',
+            '    #for expression in beforeLast',
             '      #block expression',
-            '      #if !isLast',
-            '        ),',
-            '      #else',
-            '        )',
-            '      #end',
             '    #end',
+            '    #block last',
             '  )',
             '#else',
             '  seqnc()',
@@ -901,19 +898,15 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             ')'
           ],
           semantic_and: [
-            'pre(',
-            '  __blocks.#{node.blockAddr.rule}[#{node.blockAddr.id}](cctx)',
-            '  /* function(...) {',
-            '       #block node.code',
-            '     } */',
+            'pre(ƒ.#{node.blockAddr.rule}[#{node.blockAddr.id}](cctx)/* function(...) {',
+            '    #block node.code',
+            '  } */',
             ')'
           ],
           semantic_not: [
-            'xpre(',
-            '  __blocks.#{node.blockAddr.rule}[#{node.blockAddr.id}](cctx)',
-            '  /* function(...) {',
-            '       #block node.code',
-            '     } */',
+            'xpre(ƒ.#{node.blockAddr.rule}[#{node.blockAddr.id}](cctx)/* function(...) {',
+            '    #block node.code',
+            '  } */',
             ')'
           ],
           optional: [
@@ -932,12 +925,11 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             ')'
           ],
           action: [
-            'action((',
-            '    #block expression',
-            '  ), __blocks.#{node.blockAddr.rule}[#{node.blockAddr.id}](cctx)',
-            '  /* function(...) {',
-            '       #block node.code',
-            '     } */',
+            'action(',
+            '  #block expression',
+            '  ,ƒ.#{node.blockAddr.rule}[#{node.blockAddr.id}](cctx)/* function(...) {',
+            '    #block node.code',
+            '  } */',
             ')'
           ],
           rule_ref: [
@@ -986,6 +978,11 @@ PEG.compiler.passes.generateCode = function(ast, options) {
         rulesNames.push(subnode.name);
       });
 
+      var blocksDef = false;
+      each(rulesNames, function(rule) {
+        if (node.blocks[rule]) blocksDef = true;
+      });
+
       return fill("grammar", {
         initializer:    initializer,
         initializerDef: (initializer !== ""),
@@ -993,6 +990,7 @@ PEG.compiler.passes.generateCode = function(ast, options) {
         rulesDefs:      rulesDefs,
         startRule:      node.startRule,
         blocks:         node.blocks,
+        blocksDef:      blocksDef,
         stats:          node.stats
       });
     },
@@ -1014,24 +1012,34 @@ PEG.compiler.passes.generateCode = function(ast, options) {
 
     choice: function(node) {
       var elms = node.alternatives;
-      var expressions = [];
+      var beforeLast = [];
+      for (var i = 0; i < (elms.length - 1); i++) {
+        beforeLast.push(emit(elms[i]) + ','); // FIXME: may be appending
+                                              // comma here is not ok,
+                                              // but isLast is also ugly
+      };
 
-      for (var i = 0, il = elms.length; i < il; i++) {
-        expressions.push(emit(elms[i]));
-      }
+      var last = emit(elms[elms.length - 1]);
 
-      return fill("choice", { expressions: expressions });
+      return fill("choice", { beforeLast: beforeLast,
+                              last: last });
     },
 
     sequence: function(node) {
       var elms = node.elements;
-      var expressions = [];
+      var beforeLast = [];
+      for (var i = 0, il = elms.length; i < (il - 1); i++) {
+        beforeLast.push(emit(elms[i]) + ','); // FIXME: may be appending
+                                              // comma here is not ok,
+                                              // but isLast is also ugly
+      };
 
-      for (var i = 0, il = elms.length; i < il; i++) {
-        expressions.push(emit(elms[i]));
-      }
+      var last = (elms.length > 0)
+                 ? emit(elms[elms.length - 1])
+                 : null;
 
-      return fill("sequence", { expressions: expressions });
+      return fill("sequence", { beforeLast: beforeLast,
+                                last: last });
     },
 
     labeled: function(node) {
