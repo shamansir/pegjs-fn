@@ -151,12 +151,15 @@ PEG.compiler.passes.generateCode = function(ast, options) {
       // TODO: inline-block
       // TODO: add postfix for block
       "block": {
-        params: /^(.*)$/,
+        params: /^(?:\<([^ \t\>]+)\>[ \t]+)?([^ \t]+)(?:[ \t]+\<([^ \t\>]+)\>)?$/, // ^(?:\<([^ \t\>]+)\>[ \t]+)?([^ \t]+)(?:[ \t]+\<([^ \t\>]+)\>)?$
         compile: function(state, prefix, params) {
           var x = '__x', // __x for "prefix",
               n = '__n', // __n for "lines"
               l = '__l', // __l for "length"
               i = '__i'; // __i for "index"
+          var blockVar = params[1];
+          var prefix = '"'+(params[0] || '')+'"',
+              postfix = '"'+(params[2] || '')+'"';
 
           /*
            * Originally, the generated code used |String.prototype.replace|, but
@@ -165,11 +168,15 @@ PEG.compiler.passes.generateCode = function(ast, options) {
            */
           return [
             'var ' + x + '="' + stringEscape(prefix.substring(state.indentLevel())) + '",'
-                   + n + '=(' + params[0] + ').toString().split("\\n"),'
+                   + n + '=(' + blockVar + ').toString().split("\\n"),'
                    + l + '=' + n + '.length;'
           + 'for(var ' + i + '=0;' + i + '<' + l + ';' + i + '++){'
                + n + '[' + i + ']=' + x + '+' + n + '[' + i + ']+"\\n";'
           + '}'
+          /*+ 'if(' + l + '>0){'
+              + n + '[0]=' + prefix + '+' + n + '[0];'
+              + n + '[' + l + '-1]='  + n + '[' + l + '-1]+' + postfix + ';'
+          + '}'*/
           + push(n + '.join("")'),
             [x, n, l, i]
           ];
@@ -898,13 +905,13 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             ')'
           ],
           semantic_and: [
-            'pre(ƒ.#{node.blockAddr.rule}[#{node.blockAddr.id}](cctx)/* function(...) {',
+            'pre(ƒ.#{blockAddr.rule}[#{blockAddr.id}](cctx)/* function(...) {',
             '    #block node.code',
             '  } */',
             ')'
           ],
           semantic_not: [
-            'xpre(ƒ.#{node.blockAddr.rule}[#{node.blockAddr.id}](cctx)/* function(...) {',
+            'xpre(ƒ.#{blockAddr.rule}[#{blockAddr.id}](cctx)/* function(...) {',
             '    #block node.code',
             '  } */',
             ')'
@@ -927,7 +934,7 @@ PEG.compiler.passes.generateCode = function(ast, options) {
           action: [
             'action(',
             '  #block expression',
-            '  ,ƒ.#{node.blockAddr.rule}[#{node.blockAddr.id}](cctx)/* function(...) {',
+            '  ,ƒ.#{blockAddr.rule}[#{blockAddr.id}](cctx)/* function(...) {',
             '    #block node.code',
             '  } */',
             ')'
@@ -1058,11 +1065,13 @@ PEG.compiler.passes.generateCode = function(ast, options) {
     },
 
     semantic_and: function(node) {
-      return fill("semantic_and", { node: node });
+      return fill("semantic_and", { node: node,
+                                    blockAddr: node.blockAddr });
     },
 
     semantic_not: function(node) {
-      return fill("semantic_not", { node: node });
+      return fill("semantic_not", { node: node,
+                                    blockAddr: node.blockAddr });
     },
 
     optional: function(node) {
@@ -1083,7 +1092,8 @@ PEG.compiler.passes.generateCode = function(ast, options) {
     action: function(node) {
       return fill("action", {
         node: node,
-        expression: emit(node.expression)
+        expression: emit(node.expression),
+        blockAddr: node.blockAddr
       });
     },
 

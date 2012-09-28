@@ -29,10 +29,12 @@ PEG.compiler.passes.collectBlocks = function(ast) {
       at_level--;
     }
 
-    function in_scope(f) {
+    function in_scope(/*f...*/) {
+      var fs = arguments;
       return function(node) {
         dive_in();
-        f(node);
+        for (var fi = 0, fl = fs.length;
+             fi < fl; fi++) { fs[fi](node); }
         dive_out();
       }
     }
@@ -51,10 +53,10 @@ PEG.compiler.passes.collectBlocks = function(ast) {
       rule:         resetAnd(collectInExpression),
       choice:       in_scope(collectInEach('alternatives')),
       sequence:     in_scope(collectInEach('elements')),
-      labeled:      function(node) {
-                      labels.push(node.label);
-                      collectInExpression(node);
-                    },
+      labeled:      in_scope(
+                      function(node) { labels.push(node.label); },
+                      collectInExpression
+                    ),
       simple_and:   collectInExpression,
       simple_not:   collectInExpression,
       semantic_and: saveBlock,
@@ -62,7 +64,7 @@ PEG.compiler.passes.collectBlocks = function(ast) {
       optional:     collectInExpression,
       zero_or_more: collectInExpression,
       one_or_more:  collectInExpression,
-      action:       in_scope(saveBlock),
+      action:       in_scope(saveBlock, collectInExpression),
       rule_ref:     nop,
       literal:      nop,
       any:          nop,
