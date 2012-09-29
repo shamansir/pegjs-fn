@@ -6,6 +6,39 @@ PEG.compiler.passes.collectBlocks = function(ast) {
 
     function nop() {};
 
+    var at_level = -1,
+        positions = [],
+        labels = [];
+
+    function resetAnd(f) {
+      return function(node) {
+        labels = [];
+        positions = [];
+        at_level = 0;
+        f(node);
+      }
+    }
+
+    function dive_in() {
+      at_level++;
+      positions.push(labels.length - 1);
+    };
+
+    function dive_out() {
+      labels = labels.splice(positions.pop());
+      at_level--;
+    }
+
+    function in_scope(/*f...*/) {
+      var fs = arguments;
+      return function(node) {
+        dive_in();
+        for (var fi = 0, fl = fs.length;
+             fi < fl; fi++) { fs[fi](node); }
+        dive_out();
+      }
+    }
+
     var collect = buildNodeVisitor({
 
       grammar: function(node) {
@@ -17,10 +50,13 @@ PEG.compiler.passes.collectBlocks = function(ast) {
         node.blocks = blocks;
       },
 
-      rule:         collectInExpression,
-      choice:       collectInEach('alternatives'),
-      sequence:     collectInEach('elements'),
-      labeled:      collectInExpression,
+      rule:         resetAnd(collectInExpression),
+      choice:       in_scope(collectInEach('alternatives')),
+      sequence:     in_scope(collectInEach('elements')),
+      labeled:      in_scope(
+                      function(node) { labels.push(node.label); },
+                      collectInExpression
+                    ),
       simple_and:   collectInExpression,
       simple_not:   collectInExpression,
       semantic_and: saveBlock,
@@ -28,7 +64,7 @@ PEG.compiler.passes.collectBlocks = function(ast) {
       optional:     collectInExpression,
       zero_or_more: collectInExpression,
       one_or_more:  collectInExpression,
-      action:       saveBlock,
+      action:       in_scope(saveBlock, collectInExpression),
       rule_ref:     nop,
       literal:      nop,
       any:          nop,
@@ -46,8 +82,10 @@ PEG.compiler.passes.collectBlocks = function(ast) {
         node.blockAddr = {
                 rule: curRule,
                 id: bl };
-        if (bl == 0) blocks[curRule] = [];
-        blocks[curRule].push(node.code);
+        if (bl === 0) blocks[curRule] = [];
+        blocks[curRule].push({
+          params: labels.join(','),
+          code: node.code });
     }
 
     function collectInExpression(node) {
