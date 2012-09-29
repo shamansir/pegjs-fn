@@ -26,6 +26,16 @@ Features
   <!-- * The actions variables are strict and given in as arguments to action code -->
   <!-- http://bosker.wordpress.com/2012/05/10/on-editing-text/ -->
 
+  <!-- * Rules and operators are prepared once you've loaded the parser, not before every parse call. Even rules parts are already compiled before first parse.
+  * `chunk` variable is always accessible to actions, it stores current chunk of input and its start and end positions (you may use `xpos` function to get line and column for position)
+  * `cpos` variable accessible in semantic blocks
+  * The context for actions variables is strict and given in an object format to the action/semantic blocks code, you may safely put you variables in the context and they will be automatically kept at the required level, no global variables or something like that
+  * Errors contain information about 2-dimesional error position and the failed rule, so you may use it for something like auto-complete
+  * The actual tests from standard PEG.js used for testing, expanded with tests on improvements
+  * Algorythm is exception-driven, which is a bit safer, a bit simpler and a bit faster way
+  * 2-dimensional position (slow operation) and message are calculated only on fact of real error or when user asks for it
+  * [found/expected data in error is now included in standard peg.js] -->
+
 Getting Started
 ---------------
 
