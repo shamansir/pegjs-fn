@@ -85,7 +85,7 @@ PEG.compiler.passes.generateCode = function(ast, options) {
     commands: {
       "if":   {
         params:  /^(.*)$/,
-        compile: function(state, prefix, params) {
+        compile: function(state, filler, params) {
           return ['if(' + params[0] + '){', []];
         },
         stackOp: "push"
@@ -110,7 +110,7 @@ PEG.compiler.passes.generateCode = function(ast, options) {
           state.forCurrLevel = 0;  // current level of #for loop nesting
           state.forMaxLevel  = 0;  // maximum level of #for loop nesting
         },
-        compile: function(state, prefix, params) {
+        compile: function(state, filler, params) {
           var c = '__c' + state.forCurrLevel, // __c for "collection"
               l = '__l' + state.forCurrLevel, // __l for "length"
               i = '__i' + state.forCurrLevel; // __i for "index"
@@ -122,11 +122,11 @@ PEG.compiler.passes.generateCode = function(ast, options) {
 
           return [
             '(function(){'
-             + 'var ' + c + '=' + params[1] + ','
-                      + l + '=' + c + '.length;'
-             + 'for(var ' + i + '=0;' + i + '<' + l + ';' + i + '++){'
-                + 'var isLast = (' + i + '==(' + l + '-1));'
-                + 'var ' + params[0] + '=' + c + '[' + i + '];',
+             + c + '=' + params[1] + ';'
+                 + l + '=' + c + '.length;'
+                 + 'for(' + i + '=0;' + i + '<' + l + ';' + i + '++){'
+                     + 'var isLast = (' + i + '==(' + l + '-1));'
+                     + params[0] + '=' + c + '[' + i + '];',
             [params[0], c, l, i]
           ];
         },
@@ -152,14 +152,11 @@ PEG.compiler.passes.generateCode = function(ast, options) {
       // TODO: add postfix for block
       "block": {
         params: /^(?:\<([^ \t\>]+)\>[ \t]+)?([^ \t]+)(?:[ \t]+\<([^ \t\>]+)\>)?$/, // ^(?:\<([^ \t\>]+)\>[ \t]+)?([^ \t]+)(?:[ \t]+\<([^ \t\>]+)\>)?$
-        compile: function(state, prefix, params) {
-          var x = '__x', // __x for "prefix",
+        compile: function(state, filler, params) {
+          var f = '__f', // __f for "filler",
               n = '__n', // __n for "lines"
               l = '__l', // __l for "length"
               i = '__i'; // __i for "index"
-          var blockVar = params[1];
-          var prefix = '"'+(params[0] || '')+'"',
-              postfix = '"'+(params[2] || '')+'"';
 
           /*
            * Originally, the generated code used |String.prototype.replace|, but
@@ -167,18 +164,18 @@ PEG.compiler.passes.generateCode = function(ast, options) {
            * tests for details.
            */
           return [
-            'var ' + x + '="' + stringEscape(prefix.substring(state.indentLevel())) + '",'
-                   + n + '=(' + blockVar + ').toString().split("\\n"),'
-                   + l + '=' + n + '.length;'
-          + 'for(var ' + i + '=0;' + i + '<' + l + ';' + i + '++){'
-               + n + '[' + i + ']=' + x + '+' + n + '[' + i + ']+"\\n";'
-          + '}'
-          /*+ 'if(' + l + '>0){'
-              + n + '[0]=' + prefix + '+' + n + '[0];'
-              + n + '[' + l + '-1]='  + n + '[' + l + '-1]+' + postfix + ';'
-          + '}'*/
-          + push(n + '.join("")'),
-            [x, n, l, i]
+            f + '="' + stringEscape(filler.substring(state.indentLevel())) + '";'
+              + n + '=(' + params[1] + ').toString().split("\\n");'
+              + l + '=' + n + '.length;'
+              + 'if(' + l + '>0){'
+              + n + '[0]="' + (params[0] || '') + '"+' + n + '[0];'
+              + n + '[' + l + '-1]='  + n + '[' + l + '-1]+"' + (params[2] || '') + '";'
+              + '}'
+              + 'for(' + i + '=0;' + i + '<' + l + ';' + i + '++){'
+              + n + '[' + i + ']=' + f + '+' + n + '[' + i + ']+"\\n";'
+              + '}'
+              + push(n + '.join("")'),
+            [f, n, l, i]
           ];
         },
         stackOp: "nop"
@@ -203,7 +200,7 @@ PEG.compiler.passes.generateCode = function(ast, options) {
         return [push(expr), []];
       }
 
-      function compileCommand(state, prefix, name, params) {
+      function compileCommand(state, filler, name, params) {
         var command, match, result;
 
         command = Codie.commands[name];
@@ -216,7 +213,7 @@ PEG.compiler.passes.generateCode = function(ast, options) {
           );
         }
 
-        result = command.compile(state, prefix, match.slice(1));
+        result = command.compile(state, filler, match.slice(1));
         stackOps[command.stackOp](state.commandStack, name);
         state.atBOL = true;
         return result;
@@ -764,8 +761,6 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             '    (function() {',
             '    ',
             '    #for definition in rulesDefs',
-                 // FIXME: ensure somehow that inner code of
-                 // rules has no acces to outer things
             '      #block definition',
             '      ',
             '    #end',
@@ -773,7 +768,6 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             '    ',
             /* =================== RULES WRAPPER ================ */
             '    /* RULES WRAPPER */',
-            // TODO: add only those 'any/some/literal...'-function that factually used
             '    ',
             '    var ckey; // cache key',
             '    for (var rule in rules) {',
@@ -788,8 +782,6 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             '    ',
             /* =================== RESULT OBJECT ================ */
             '    /* RESULT OBJECT + PARSE FUNCTION */',
-            '    ',
-            '    var g = this;', // FIXME: to set input, ensure that required
             '    ',
             '    var result = {',
             '      /*',
@@ -871,7 +863,7 @@ PEG.compiler.passes.generateCode = function(ast, options) {
           choice: [
             'choice(',
             '  #for expression in beforeLast',
-            '    #block expression',
+            '    #block expression <,>',
             '  #end',
             '  #block last',
             ')'
@@ -880,7 +872,7 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             '#if last !== null',
             '  seqnc(',
             '    #for expression in beforeLast',
-            '      #block expression',
+            '      #block expression <,>',
             '    #end',
             '    #block last',
             '  )',
@@ -1021,9 +1013,7 @@ PEG.compiler.passes.generateCode = function(ast, options) {
       var elms = node.alternatives;
       var beforeLast = [];
       for (var i = 0; i < (elms.length - 1); i++) {
-        beforeLast.push(emit(elms[i]) + ','); // FIXME: may be appending
-                                              // comma here is not ok,
-                                              // but isLast is also ugly
+        beforeLast.push(emit(elms[i]));
       };
 
       var last = emit(elms[elms.length - 1]);
@@ -1036,9 +1026,7 @@ PEG.compiler.passes.generateCode = function(ast, options) {
       var elms = node.elements;
       var beforeLast = [];
       for (var i = 0, il = elms.length; i < (il - 1); i++) {
-        beforeLast.push(emit(elms[i]) + ','); // FIXME: may be appending
-                                              // comma here is not ok,
-                                              // but isLast is also ugly
+        beforeLast.push(emit(elms[i]))
       };
 
       var last = (elms.length > 0)
