@@ -897,16 +897,12 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             ')'
           ],
           semantic_and: [
-            'pre(ƒ.#{blockAddr.rule}[#{blockAddr.id}](cctx)/* function(...) {',
-            '    #block node.code',
-            '  } */',
-            ')'
+            'pre(ƒ.#{blockAddr.rule}[#{blockAddr.id}](cctx))',
+            '    #block </*{> node.code <}*/>'
           ],
           semantic_not: [
-            'xpre(ƒ.#{blockAddr.rule}[#{blockAddr.id}](cctx)/* function(...) {',
-            '    #block node.code',
-            '  } */',
-            ')'
+            'xpre(ƒ.#{blockAddr.rule}[#{blockAddr.id}](cctx))',
+            '     #block </*{> node.code <}*/>'
           ],
           optional: [
             'maybe(',
@@ -925,11 +921,9 @@ PEG.compiler.passes.generateCode = function(ast, options) {
           ],
           action: [
             'action(',
-            '  #block expression',
-            '  ,ƒ.#{blockAddr.rule}[#{blockAddr.id}](cctx)/* function(...) {',
-            '    #block node.code',
-            '  } */',
-            ')'
+            '  #block expression <,>',
+            '  ƒ.#{blockAddr.rule}[#{blockAddr.id}](cctx))',
+            '  #block </*{> node.code <}*/>'
           ],
           rule_ref: [
             'ref(rules.#{node.name})'
