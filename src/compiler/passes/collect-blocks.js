@@ -8,8 +8,9 @@ PEG.compiler.passes.collectBlocks = function(ast) {
 
     var at_level = -1,
         positions = [],
-        labels = [];
-        requesters = {};
+        labels = []; //{};
+    var requesters = {},
+        skipDive = false;
 
     function resetAnd(f) {
       return function(node) {
@@ -33,7 +34,7 @@ PEG.compiler.passes.collectBlocks = function(ast) {
     function dive_out() {
       console.log('diving out, before: ', at_level, labels, positions);
       var cur_rqs = requesters[at_level];
-      console.log('passing labels to requesters', cur_rqs.length);
+      if (cur_rqs.length) console.log('passing labels to requesters -> ', cur_rqs.length);
       for (var ri = 0, rl = cur_rqs.length; ri < rl; ri++) {
         cur_rqs[ri](labels);
       }
@@ -46,10 +47,13 @@ PEG.compiler.passes.collectBlocks = function(ast) {
     function in_scope(/*f...*/) {
       var fs = arguments;
       return function(node) {
+        if (skipDive) { skipDive = false;
+                        each(fs, function(f) { f(node); });
+                        return; }
+
         console.log('>', node.type/*, node*/);
         dive_in();
-        for (var fi = 0, fl = fs.length;
-             fi < fl; fi++) { fs[fi](node); }
+        each(fs, function(f) { f(node); });
         dive_out();
         console.log('<', node.type/*, node*/);
       }
@@ -98,19 +102,23 @@ PEG.compiler.passes.collectBlocks = function(ast) {
     function saveBlock(node) {
         var bl = blocks[curRule]
                ? blocks[curRule].length : 0;
-        node.blockAddr = {
-                rule: curRule,
-                id: bl };
-        if (bl === 0) blocks[curRule] = [];
-        var block = {
-          params: '',
-          code: node.code };
+
+        node.blockAddr = { rule: curRule,
+                           id: bl };
+        var block = { params: '',
+                      code: node.code };
+
+        if (node.expression && (node.expression.type === 'sequence')) {
+          skipDive = true;
+        }
         requesters[at_level].push(function(labels) {
           console.log('saving block: ', {
             params: labels.join(','),
             code: node.code });
           block.params = 'labels';
         });
+
+        if (bl === 0) blocks[curRule] = [];
         blocks[curRule].push(block);
     }
 
