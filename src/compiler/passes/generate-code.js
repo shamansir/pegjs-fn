@@ -283,6 +283,9 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             /* =============== USER BLOCK ================ */
             '  /* PARSER ENVIRONMENT */',
             '  ',
+            // TODO: ensure input variable is accesible to user
+            // TODO: write there about a trick: https://github.com/dmajda/pegjs/pull/94
+            // TODO: look through peg.js pull requests
             '  #if initializerDef || blocksDef',
             '    var __parser = function() {',
             '      #if initializerDef',
@@ -954,8 +957,13 @@ PEG.compiler.passes.generateCode = function(ast, options) {
     return templates[name](vars);
   }
 
-  function emitSimple(name) {
-    return function(node) { return fill(name, { node: node }); };
+  function ensureHasAddr(node) {
+    if (!node.blockAddr) {
+        console.log(node);
+        throw new Error('No block address data for '+
+              node.type+' node, seems \'collect-blocks\' '+
+              'pass was not performed or failed');
+    }
   }
 
   var emit = buildNodeVisitor({
@@ -1047,11 +1055,13 @@ PEG.compiler.passes.generateCode = function(ast, options) {
     },
 
     semantic_and: function(node) {
+      ensureHasAddr(node);
       return fill("semantic_and", { node: node,
                                     blockAddr: node.blockAddr });
     },
 
     semantic_not: function(node) {
+      ensureHasAddr(node);
       return fill("semantic_not", { node: node,
                                     blockAddr: node.blockAddr });
     },
@@ -1072,6 +1082,7 @@ PEG.compiler.passes.generateCode = function(ast, options) {
     },
 
     action: function(node) {
+      ensureHasAddr(node);
       return fill("action", {
         node: node,
         expression: emit(node.expression),
