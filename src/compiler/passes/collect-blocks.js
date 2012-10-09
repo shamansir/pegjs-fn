@@ -13,6 +13,12 @@ PEG.compiler.passes.collectBlocks = function(ast) {
 
       var labels = {};
 
+      var sorted = [];
+
+      function logSorted(sorted) {
+
+      };
+
       return {
 
         skipDive: false,
@@ -33,6 +39,11 @@ PEG.compiler.passes.collectBlocks = function(ast) {
                                at_pos++;
                                return this.get_pos(); },
 
+        step: function(node) {
+          node._pos = diver.next_pos();
+          console.log('+ step at ', node, '; pos is ', node._pos);
+        },
+
         step_back: function() { prev_pos = at_pos;
                                 at_pos--;
                                 console.log('* stepping back at ',
@@ -48,21 +59,22 @@ PEG.compiler.passes.collectBlocks = function(ast) {
           }
           at_level++;
           prev_pos = at_pos;
-          at_pos = 0;
-          node._pos = this.get_pos();
-          console.log('> diving in at ', node, '; pos is ', node._pos);
+          at_pos = -1;
+          console.log('> diving in at ', node, '; pos is ', [ at_level, at_pos ]);
         },
 
         level_out: function(node) {
           if (node.__skipFlag) {
             console.log('* skipping diving out at ', node);
             delete node.__skipFlag;
+            this.step(node);
             return;
           }
           at_level--;
           at_pos = prev_pos;
+          this.step(node);
           console.log('< diving out at ', node,
-                      '; pos is ', [ at_level, at_pos ]);
+                      '; pos is ', node._pos);
         },
 
         save_block: function(node, rule) {
@@ -97,11 +109,6 @@ PEG.compiler.passes.collectBlocks = function(ast) {
       if (expression.type == 'sequence') diver.skipDive = true;
     }
 
-    function step(node) {
-      node._pos = diver.next_pos();
-      console.log('+ step at ', node, '; pos is ', node._pos);
-    }
-
     var collect = buildNodeVisitor({
 
       grammar: function(node) {
@@ -118,40 +125,43 @@ PEG.compiler.passes.collectBlocks = function(ast) {
       rule:         function(node) { diver.level_in(node);
                                      collect(node.expression);
                                      diver.level_out(node); },
-      named:        function(node) { step(node);
-                                     collect(node.expression); },
-      choice:       function(node) { step(node);
-                                     each(node.alternatives,
+      named:        function(node) { collect(node.expression);
+                                     diver.step(node); },
+      choice:       function(node) { each(node.alternatives,
                                         function(node) { collect(node);
-                                                         diver.step_back(); }); },
+                                                         diver.step_back(); });
+                                     diver.step(node); },
       sequence:     function(node) { diver.level_in(node);
                                      each(node.elements, collect);
                                      diver.level_out(node); },
-      labeled:      function(node) { step(node);
-                                     diver.save_label(node.label);
+      labeled:      function(node) { diver.save_label(node.label);
+                                     diver.step(node);
                                      collect(node.expression); },
-      simple_and:   function(node) { step(node);
-                                     collect(node.expression); },
-      simple_not:   function(node) { step(node);
-                                     collect(node.expression); },
-      semantic_and: function(node) { step(node);
-                                     diver.save_block(node); },
-      semantic_not: function(node) { step(node);
-                                     diver.save_block(node); },
-      optional:     function(node) { step(node);
-                                     collect(node.expression); },
-      zero_or_more: function(node) { step(node);
-                                     collect(node.expression); },
-      one_or_more:  function(node) { step(node);
-                                     collect(node.expression); },
-      action:       function(node) { step(node);
+      simple_and:   function(node) { collect(node.expression);
+                                     diver.step(node); },
+      simple_not:   function(node) { collect(node.expression);
+                                     diver.step(node); },
+      semantic_and: function(node) { diver.save_block(node);
+                                     diver.step(node); },
+      semantic_not: function(node) { diver.save_block(node);
+                                     diver.step(node); },
+      optional:     function(node) { collect(node.expression);
+                                     diver.step(node); },
+      zero_or_more: function(node) { collect(node.expression);
+                                     diver.step(node); },
+      one_or_more:  function(node) { collect(node.expression);
+                                     diver.step(node); },
+      action:       function(node) { console.log('\\ enter action', node);
+                                     diver.level_in(node);
                                      skipDiveIfSequence(node.expression);
                                      collect(node.expression);
-                                     diver.save_block(node); },
-      rule_ref:     function(node) { step(node); },
-      literal:      function(node) { step(node); },
-      any:          function(node) { step(node); },
-      "class":      function(node) { step(node); }
+                                     diver.save_block(node);
+                                     diver.level_out(node);
+                                     diver.step(node); },
+      rule_ref:     function(node) { diver.step(node); },
+      literal:      function(node) { diver.step(node); },
+      any:          function(node) { diver.step(node); },
+      "class":      function(node) { diver.step(node); }
 
     });
 
