@@ -6,14 +6,14 @@ PEG.compiler.passes.collectBlocks = function(ast) {
 
     var diver = (function() {
 
-      var at_level = -1,
-          at_pos = -1;
+      // TODO: use bitshifting to save current position?
+      var at_level,
+          at_unit,
+          at_pos;
 
-      var prev_pos = at_pos;
+      var labels;
 
-      var labels = {};
-
-      var sorted = [];
+      var sorted;
 
       function logSorted(sorted) {
 
@@ -24,19 +24,19 @@ PEG.compiler.passes.collectBlocks = function(ast) {
         skipDive: false,
 
         get_pos: function() {
-          return [ at_level, at_pos ];
+          return [ at_level, at_unit[at_level], at_pos[at_level][at_unit[at_level]] ];
         },
 
         reset: function() {
           console.log('x resetting');
           at_level = -1;
-          at_pos = -1;
-          prev_pos = at_pos;
+          at_pos = [];
+          at_unit = [];
           labels = {};
+          sorted = [];
         },
 
-        next_pos: function() { prev_pos = at_pos;
-                               at_pos++;
+        next_pos: function() { at_pos[at_level][at_unit[at_level]]++;
                                return this.get_pos(); },
 
         step: function(node) {
@@ -44,10 +44,8 @@ PEG.compiler.passes.collectBlocks = function(ast) {
           console.log('+ step at ', node, '; pos is ', node._pos);
         },
 
-        step_back: function() { prev_pos = at_pos;
-                                at_pos--;
-                                console.log('* stepping back at ',
-                                            [ at_level, at_pos ]);
+        step_back: function() { at_pos[at_level][at_unit[at_level]]--;
+                                console.log('* stepping back to ', this.get_pos());
                                 return this.get_pos(); },
 
         level_in: function(node) {
@@ -58,9 +56,11 @@ PEG.compiler.passes.collectBlocks = function(ast) {
             return;
           }
           at_level++;
-          prev_pos = at_pos;
-          at_pos = -1;
-          console.log('> diving in at ', node, '; pos is ', [ at_level, at_pos ]);
+          if (typeof at_unit[at_level] == 'undefined') { at_unit[at_level] = -1; }
+          at_unit[at_level]++;
+          if (typeof at_pos[at_level] == 'undefined') { at_pos[at_level] = []; }
+          at_pos[at_level][at_unit[at_level]] = -1;
+          console.log('> diving in at ', node, '; pos is ', this.get_pos());
         },
 
         level_out: function(node) {
@@ -71,7 +71,6 @@ PEG.compiler.passes.collectBlocks = function(ast) {
             return;
           }
           at_level--;
-          at_pos = prev_pos;
           this.step(node);
           console.log('< diving out at ', node,
                       '; pos is ', node._pos);
@@ -94,8 +93,13 @@ PEG.compiler.passes.collectBlocks = function(ast) {
         },
 
         save_label: function(label) {
+          var cur_unit = at_unit[at_level],
+              cur_pos = at_pos[at_level][cur_unit];
           if (!labels[at_level]) labels[at_level] = {};
-          labels[at_level][at_pos] = label;
+          if (!labels[at_level][cur_unit]) labels[at_level][cur_unit] = {};
+          labels[at_level][cur_unit][cur_pos] = label;
+          console.log('% saved label \'', label, '\' to level:unit:pos ',
+                      at_level + ':' + cur_unit + ':' + cur_pos);
         },
 
         finish: function(rule) {
@@ -134,8 +138,8 @@ PEG.compiler.passes.collectBlocks = function(ast) {
       sequence:     function(node) { diver.level_in(node);
                                      each(node.elements, collect);
                                      diver.level_out(node); },
-      labeled:      function(node) { diver.save_label(node.label);
-                                     diver.step(node);
+      labeled:      function(node) { diver.step(node);
+                                     diver.save_label(node.label);
                                      collect(node.expression); },
       simple_and:   function(node) { collect(node.expression);
                                      diver.step(node); },
