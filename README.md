@@ -253,7 +253,7 @@ Try to match the first expression, if it does not succeed, try the second one, e
 Building From Source
 --------------------
 
-Requirements are:
+Requirements are (install with `npm install pegjs --dev` to get them all automatically):
 
   * Node.js 0.6.6+
   * UglifyJS (`sudo npm install -g uglify-js`) >= 1.2.4
@@ -275,6 +275,8 @@ To run benchmark, use:
 To run test specifications, use (you'll need Jasmine):
 
     make spec
+
+*Note*. For Windows, among with Node.js, you'll need [Cygwin](http://cygwin.com/) to run `make`. It uses Perl to generate version number, so do not forget to install it.
 
 Compatibility
 -------------
