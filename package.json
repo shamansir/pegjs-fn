@@ -1,18 +1,25 @@
 {
-  "name":        "pegjs",
+  "name":        "pegjs-im",
   "version":     "@VERSION",
-  "description": "Parser generator for JavaScript",
-  "homepage":    "http://pegjs.majda.cz/",
+  "description": "Parser generator for JavaScript, compact modification",
+  "homepage":    "http://github.com/shamansir/pegjs",
   "author": {
     "name":  "David Majda",
     "email": "david@majda.cz",
     "url":   "http://majda.cz/"
   },
+  "contributors": [ { 
+    "name": "Ulric Wilfred",
+    "email": "shaman.sir@gmail.com",
+    "url": "http://shamansir.github.com" } ],
   "main":        "lib/peg",
   "bin":         "bin/pegjs",
   "repository": {
     "type": "git",
-    "url":  "http://github.com/dmajda/pegjs.git"
+    "url":  "http://github.com/shamansir/pegjs.git"
+  },
+  "scripts": {
+    "test": "make spec"
   },
   "devDependencies": {
     "jasmine-node": ">= 1.0.25",
