@@ -99,7 +99,7 @@ build:
 clean:
 	rm -rf $(LIB_DIR)
 
-# Prepare dstribution files
+# Prepare distribution files
 dist: build
 	# Web
 	mkdir -p $(DIST_WEB_DIR)
