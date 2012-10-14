@@ -1,9 +1,9 @@
-var fs = require('fs');
+var fs = require('fs'),
+    path = require('path');
 
 // aliases
 jake.cat = function(file) { return fs.readFileSync(file, 'utf8'); };
 jake.echo = function(what, where) { fs.writeFileSync(where, what); }; 
-each = function(what, f) { for (var i = 0, l = what.length; i < l; i++) { f(what[i]); } };
 
 // ========== VERSION ==========
 
@@ -15,13 +15,13 @@ var VERSION_FILE = 'VERSION',
 // ========== Directories ==========
 
 var Dirs = {
-    SRC:       'src',
-    BIN:       'bin',
-    SPEC:      'spec',
-    BENCHMARK: 'benchmark',
-    EXAMPLES:  'examples',
-    LIB:       'lib',
-    DIST:      'dist'
+    SRC:       './src',
+    BIN:       './bin',
+    SPEC:      './spec',
+    BENCHMARK: './benchmark',
+    EXAMPLES:  './examples',
+    LIB:       './lib',
+    DIST:      './dist'
 };
 Dirs.DIST_WEB  = Dirs.DIST + '/web';
 Dirs.DIST_NODE = Dirs.DIST + '/node'; 
@@ -50,8 +50,8 @@ var Binaries = {
     JSHINT: 'jshint',
     UGLIFYJS: 'uglifyjs',
     JASMINE_NODE: 'jasmine-node',
-    PEGJS: Dirs.BIN + '/pegjs',
-    BENCHMARK: Dirs.BENCHMARK + '/run'
+    PEGJS: _withNode(Dirs.BIN + '/pegjs'),
+    BENCHMARK: _withNode(Dirs.BENCHMARK + '/run')
 };
 
 // ========== Tasks ==========
@@ -59,7 +59,7 @@ var Binaries = {
 // :::::::::: default ::::::::::
 
 desc('Coherently call `clean` and `dist` tasks by default');
-task('default', ['clean', 'dist'], function() {});
+task('default', ['distclean', 'clean', 'dist'], function() {});
 
 // :::::::::: parser ::::::::::
 
@@ -94,6 +94,7 @@ desc('Prepare distribution files');
 task('dist', ['build'], function() {
 
   // Web
+  _ensureHas(Binaries.UGLIFYJS);  
   jake.mkdirP(Dirs.DIST_WEB);
   jake.cpR(Files.PegJS.LIB, Files.Dist.DEV);
   jake.exec([
@@ -106,17 +107,14 @@ task('dist', ['build'], function() {
 
   // Node.js
   jake.mkdirP(Dirs.DIST_NODE);
-  each([
-      Dirs.LIB, 
-      Dirs.BIN, 
-      Dirs.EXAMPLES,
-      Files.Info.CHANGELOG, 
-      Files.Info.LICENSE,
-      Files.Info.README, 
-      Files.Info.VERSION,
-      Dirs.DIST_NODE
-    ], function(item) { jake.cpR(item, Dirs.DIST_NODE); }    
-  );
+  [ Dirs.LIB, 
+    Dirs.BIN, 
+    Dirs.EXAMPLES,
+    Files.Info.CHANGELOG, 
+    Files.Info.LICENSE,
+    Files.Info.README, 
+    Files.Info.VERSION
+  ].forEach(function(item) { jake.cpR(item, Dirs.DIST_NODE); });
   jake.echo(_preprocess(Files.Package.SRC), Files.Package.DIST);
 
 });
@@ -132,6 +130,7 @@ task('distclean', function() {
 
 desc('Run the spec suite');
 task('spec', ['build'], function() {
+  _ensureHas(Binaries.JASMINE_NODE);
   jake.exec([
     [ Binaries.JASMINE_NODE, 
       '--verbose',
@@ -151,6 +150,7 @@ task('benchmark', ['build'], function() {
 
 desc('Run JSHint on the source');
 task('hint', ['build'], function() {
+  _ensureHas(Binaries.JSHINT);
   var applyTo = new jake.FileList();
   applyTo.include(Dirs.SRC + '/*.js');
   applyTo.include(Dirs.SPEC + '/*.js');
@@ -166,7 +166,7 @@ task('hint', ['build'], function() {
 //.PHONY: spec benchmark hint parser build clean dist distclean
 //.SILENT: spec benchmark hint parser build clean dist distclean
 
-// { Took from old Jakefile by dmajda }
+// { Adapted from old Jakefile by dmajda }
 //
 // A simple preprocessor that recognizes two directives:
 //
@@ -174,21 +174,28 @@ task('hint', ['build'], function() {
 //   @include "<file>" -- include <file> here
 //
 function _preprocess(file) {
-  var input = fs.readFileSync(file, "utf8").trim();
-  return input.split("\n").map(function(line) {
+  var input = jake.cat(file).trim();
+  return input.split('\n').map(function(line) {
     var matches = /^\s*\/\/\s*@include\s*"([^"]*)"\s*$/.exec(line);
     if (matches !== null) {
-      var includedFile = SRC_DIR + "/" + matches[1];
-
+      var included = path.dirname(file) + '/' + matches[1];
       try {
-        fs.statSync(includedFile);
+        fs.statSync(included);
       } catch (e) {
-        abort("Included file \"" + includedFile + "\" does not exist.");
+        fail('Included file "' + included + '" does not exist.');
       }
 
-      return preprocess(includedFile);
+      return _preprocess(included);
     } else {
       return line;
     }
   }).join("\n").replace(/@VERSION/g, VERSION);
+}
+
+function _ensureHas(cmd) {
+  //TODO: fail('`' + cmd + '` failed or binary is not accessible, ensure you have it installed');
+} 
+
+function _withNode(cmd) {
+  return 'node ' + cmd;
 }
