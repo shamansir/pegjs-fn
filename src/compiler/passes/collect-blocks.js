@@ -7,7 +7,8 @@ PEG.compiler.passes.collectBlocks = function(ast) {
     var diver = (function() {
 
       var root = null,
-          cur = null;
+          cur = null,
+          level = -1;
 
       var _labels,
           _blocks;
@@ -20,19 +21,21 @@ PEG.compiler.passes.collectBlocks = function(ast) {
           console.log('x resetting');
           root = null;
           cur = null;
+          level = -1;
           _labels = {};
-          _blocks = {};
+          _blocks = [];
         },
 
-        start: function(rule) {
+        start: function(rule, node) {
           this._reset();
-          root = { node: node };
+          level = 0;
+          root = { node: node, level: level };
           cur = root;
           console.log('* root is ', node);
         },
 
         step: function(node) {
-          cur.next = { node: node };
+          cur.next = { node: node, level: level };
           cur.next.prev = cur;
           cur = cur.next;
           console.log('* step forward with ', node);
@@ -48,9 +51,8 @@ PEG.compiler.passes.collectBlocks = function(ast) {
             this.skipDive = false;
             return;
           }
-          cur.down = { node: node };
-          cur.down.up = cur;
-          cur = cur.down;
+          level++;
+          this.step(node);
           console.log('> diving in at ', node);
         },
 
@@ -61,9 +63,8 @@ PEG.compiler.passes.collectBlocks = function(ast) {
             this.step(node);
             return;
           }
-          cur.up = { node: node };
-          cur.up.down = cur;
-          cur = cur.up;
+          level--;
+          this.step(node);
           console.log('< diving out at ', node);
         },
 
@@ -85,23 +86,26 @@ PEG.compiler.passes.collectBlocks = function(ast) {
         },
 
         save_label: function(label) {
-          if (!labels[label]) labels[label] = [];
-          labels[label].push(/*{ node: node } || */cur);
+          if (!_labels[label]) _labels[label] = [];
+          _labels[label].push(/*{ node: node } || */cur);
           console.log('% saved label \'', label, '\' as ', cur.node);
         },
 
         finish: function(rule) {
-          console.log('----------');
+          console.log('----------', rule, '----------');
           var path = [ 0 ],
               level = 0;
           var p = root;
           while (p) {
-            console.log(path.join(':'), p.node);
-                 if (p.next) { path[level]++; p = p.next; }
-            else if (p.down) { level++; if (!path[level]) path[level] = 0;
-                               p = p.down; }
-            else if (p.up) { level--; p = p.up; }
+            level = p.level;
+            if (!path[level]) path[level] = 0;
+            console.log(level, path.slice(0,level+1).join(':'), p.node);
+            path[level]++;
+            p = p.next;
           }
+          //console.log('labels', labels);
+          //console.log('blocks', blocks);
+          console.log('===================================');
         }
 
       }
@@ -116,17 +120,15 @@ PEG.compiler.passes.collectBlocks = function(ast) {
       grammar: function(node) {
         each(node.rules, function(rule) {
           curRule = rule.name;
-          diver.start(curRule);
           collect(rule);
-          diver.finish(curRule);
         });
 
         node.blocks = blocks;
       },
 
-      rule:         function(node) { diver.level_in(node);
+      rule:         function(node) { diver.start(curRule, node);
                                      collect(node.expression);
-                                     diver.level_out(node); },
+                                     diver.finish(curRule); },
       named:        function(node) { collect(node.expression);
                                      diver.step(node); },
       choice:       function(node) { each(node.alternatives,
@@ -143,10 +145,10 @@ PEG.compiler.passes.collectBlocks = function(ast) {
                                      diver.step(node); },
       simple_not:   function(node) { collect(node.expression);
                                      diver.step(node); },
-      semantic_and: function(node) { diver.save_block(node);
-                                     diver.step(node); },
-      semantic_not: function(node) { diver.save_block(node);
-                                     diver.step(node); },
+      semantic_and: function(node) { diver.step(node);
+                                     diver.save_block(); },
+      semantic_not: function(node) { diver.step(node);
+                                     diver.save_block(); },
       optional:     function(node) { collect(node.expression);
                                      diver.step(node); },
       zero_or_more: function(node) { collect(node.expression);
