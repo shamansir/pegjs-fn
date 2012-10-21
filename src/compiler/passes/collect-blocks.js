@@ -6,47 +6,40 @@ PEG.compiler.passes.collectBlocks = function(ast) {
 
     var diver = (function() {
 
-      // TODO: use bitshifting to save current position?
-      var at_level,
-          at_unit,
-          at_pos;
+      var root = null,
+          cur = null;
 
-      var labels;
-
-      var sorted;
-
-      function logSorted(sorted) {
-
-      };
+      var _labels,
+          _blocks;
 
       return {
 
         skipDive: false,
 
-        get_pos: function() {
-          return [ at_level, at_unit[at_level], at_pos[at_level][at_unit[at_level]] ];
-        },
-
-        reset: function() {
+        _reset: function() {
           console.log('x resetting');
-          at_level = -1;
-          at_pos = [];
-          at_unit = [];
-          labels = {};
-          sorted = [];
+          root = null;
+          cur = null;
+          _labels = {};
+          _blocks = {};
         },
 
-        next_pos: function() { at_pos[at_level][at_unit[at_level]]++;
-                               return this.get_pos(); },
+        start: function(rule) {
+          this._reset();
+          root = { node: node };
+          cur = root;
+          console.log('* root is ', node);
+        },
 
         step: function(node) {
-          node._pos = diver.next_pos();
-          console.log('+ step at ', node, '; pos is ', node._pos);
+          cur.next = { node: node };
+          cur.next.prev = cur;
+          cur = cur.next;
+          console.log('* step forward with ', node);
         },
 
-        step_back: function() { at_pos[at_level][at_unit[at_level]]--;
-                                console.log('* stepping back to ', this.get_pos());
-                                return this.get_pos(); },
+        step_back: function() { cur = cur.prev;
+                                console.log('* stepping back to ', cur.node); },
 
         level_in: function(node) {
           if (this.skipDive) {
@@ -55,12 +48,10 @@ PEG.compiler.passes.collectBlocks = function(ast) {
             this.skipDive = false;
             return;
           }
-          at_level++;
-          if (typeof at_unit[at_level] == 'undefined') { at_unit[at_level] = -1; }
-          at_unit[at_level]++;
-          if (typeof at_pos[at_level] == 'undefined') { at_pos[at_level] = []; }
-          at_pos[at_level][at_unit[at_level]] = -1;
-          console.log('> diving in at ', node, '; pos is ', this.get_pos());
+          cur.down = { node: node };
+          cur.down.up = cur;
+          cur = cur.down;
+          console.log('> diving in at ', node);
         },
 
         level_out: function(node) {
@@ -70,13 +61,14 @@ PEG.compiler.passes.collectBlocks = function(ast) {
             this.step(node);
             return;
           }
-          at_level--;
-          this.step(node);
-          console.log('< diving out at ', node,
-                      '; pos is ', node._pos);
+          cur.up = { node: node };
+          cur.up.down = cur;
+          cur = cur.up;
+          console.log('< diving out at ', node);
         },
 
-        save_block: function(node, rule) {
+        save_block: function() {
+          var node = cur.node;
           var rule = rule || curRule;
           var bl = blocks[rule]
                    ? blocks[rule].length : 0;
@@ -88,22 +80,28 @@ PEG.compiler.passes.collectBlocks = function(ast) {
 
           if (bl === 0) blocks[rule] = [];
           blocks[rule].push(block);
-
+          _blocks.push(cur);
           //console.log(node, '-->', block);
         },
 
         save_label: function(label) {
-          var cur_unit = at_unit[at_level],
-              cur_pos = at_pos[at_level][cur_unit];
-          if (!labels[at_level]) labels[at_level] = {};
-          if (!labels[at_level][cur_unit]) labels[at_level][cur_unit] = {};
-          labels[at_level][cur_unit][cur_pos] = label;
-          console.log('% saved label \'', label, '\' to level:unit:pos ',
-                      at_level + ':' + cur_unit + ':' + cur_pos);
+          if (!labels[label]) labels[label] = [];
+          labels[label].push(/*{ node: node } || */cur);
+          console.log('% saved label \'', label, '\' as ', cur.node);
         },
 
         finish: function(rule) {
-
+          console.log('----------');
+          var path = [ 0 ],
+              level = 0;
+          var p = root;
+          while (p) {
+            console.log(path.join(':'), p.node);
+                 if (p.next) { path[level]++; p = p.next; }
+            else if (p.down) { level++; if (!path[level]) path[level] = 0;
+                               p = p.down; }
+            else if (p.up) { level--; p = p.up; }
+          }
         }
 
       }
@@ -118,7 +116,7 @@ PEG.compiler.passes.collectBlocks = function(ast) {
       grammar: function(node) {
         each(node.rules, function(rule) {
           curRule = rule.name;
-          diver.reset();
+          diver.start(curRule);
           collect(rule);
           diver.finish(curRule);
         });
@@ -157,9 +155,9 @@ PEG.compiler.passes.collectBlocks = function(ast) {
                                      diver.step(node); },
       action:       function(node) { console.log('\\ enter action', node);
                                      diver.level_in(node);
+                                     diver.save_block();
                                      skipDiveIfSequence(node.expression);
                                      collect(node.expression);
-                                     diver.save_block(node);
                                      diver.level_out(node);
                                      diver.step(node); },
       rule_ref:     function(node) { diver.step(node); },
