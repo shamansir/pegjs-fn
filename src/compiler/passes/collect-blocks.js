@@ -8,19 +8,21 @@ PEG.compiler.passes.collectBlocks = function(ast) {
 
       var root = null,
           cur = null,
+          parent = null,
           level = -1;
+
+      var parent;
 
       var _labels,
           _blocks;
 
       return {
 
-        skipDive: false,
-
         _reset: function() {
           console.log('x resetting');
           root = null;
           cur = null;
+          parent = null;
           level = -1;
           _labels = {};
           _blocks = [];
@@ -37,34 +39,24 @@ PEG.compiler.passes.collectBlocks = function(ast) {
         step: function(node) {
           cur.next = { node: node, level: level };
           cur.next.prev = cur;
+          if (parent) cur.parent = parent;
           cur = cur.next;
           console.log('* step forward with ', node);
         },
 
-        step_back: function() { cur = cur.prev;
-                                console.log('* stepping back to ', cur.node); },
+        /* step_back: function() { cur = cur.prev;
+                                console.log('* stepping back to ', cur.node); }, */
 
         level_in: function(node) {
-          if (this.skipDive) {
-            console.log('* skipping diving in at ', node);
-            node.__skipFlag = true;
-            this.skipDive = false;
-            return;
-          }
-          level++;
           this.step(node);
-          console.log('> diving in at ', node);
+          parent = cur;
+          level++;
+          console.log('> diving in at ', node, 'level is', level, 'parent is', parent);
         },
 
         level_out: function(node) {
-          if (node.__skipFlag) {
-            console.log('* skipping diving out at ', node);
-            delete node.__skipFlag;
-            this.step(node);
-            return;
-          }
+          parent = parent.parent;
           level--;
-          this.step(node);
           console.log('< diving out at ', node);
         },
 
@@ -99,7 +91,7 @@ PEG.compiler.passes.collectBlocks = function(ast) {
           while (p) {
             level = p.level;
             if (!path[level]) path[level] = 0;
-            console.log(level, path.slice(0,level+1).join(':'), p.node);
+            console.log(level, path.slice(0,level+1).join(':'), p.node, p.parent ? p.parent.node : '-');
             path[level]++;
             p = p.next;
           }
@@ -110,10 +102,6 @@ PEG.compiler.passes.collectBlocks = function(ast) {
 
       }
     })();
-
-    function skipDiveIfSequence(expression) {
-      if (expression.type == 'sequence') diver.skipDive = true;
-    }
 
     var collect = buildNodeVisitor({
 
@@ -133,7 +121,7 @@ PEG.compiler.passes.collectBlocks = function(ast) {
                                      diver.step(node); },
       choice:       function(node) { each(node.alternatives,
                                         function(node) { collect(node);
-                                                         diver.step_back(); });
+                                                         /*diver.step_back();*/ });
                                      diver.step(node); },
       sequence:     function(node) { diver.level_in(node);
                                      each(node.elements, collect);
@@ -158,7 +146,6 @@ PEG.compiler.passes.collectBlocks = function(ast) {
       action:       function(node) { console.log('\\ enter action', node);
                                      diver.level_in(node);
                                      diver.save_block();
-                                     skipDiveIfSequence(node.expression);
                                      collect(node.expression);
                                      diver.level_out(node);
                                      diver.step(node); },
