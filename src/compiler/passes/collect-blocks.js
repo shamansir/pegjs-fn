@@ -6,6 +6,24 @@ PEG.compiler.passes.collectBlocks = function(ast) {
 
     var diver = (function() {
 
+      function DNode(level, node, parent) {
+        this.level = level;
+        this.node = node;
+        this.parent = parent;
+        this.inspect = function() {
+          var pad = '    ';
+          return '\n' + pad + '{ ' + this.level + '\n' + pad +
+               '>--(' + this.node.inspect() + ')--<\n' + pad +
+               '   ^' + (this.parent ? this.parent.node.inspect() : '[none]') + '^\n' + pad +
+               '  <<' + (this.prev ? this.prev.node.inspect() : '[none]') + '\n' + pad +
+
+               '    ' + (this.next ? this.next.node.inspect() : '[none]') + '>> }';
+        }
+      }
+      /*DNode.prototype.inspect = function() {
+
+      }*/
+
       var root = null,
           cur = null,
           parent = null,
@@ -31,17 +49,19 @@ PEG.compiler.passes.collectBlocks = function(ast) {
         start: function(rule, node) {
           this._reset();
           level = 0;
-          root = { node: node, level: level };
+          root = new DNode(level, node); // { node: node, level: level };
           cur = root;
-          console.log('* root is ', node);
+          console.log('* root is', node);
         },
 
         step: function(node) {
-          cur.next = { node: node, level: level };
+          cur.next = new DNode(level, node, parent);
+            // { node: node, level: level,
+            //           parent: parent };
           cur.next.prev = cur;
-          if (parent) cur.parent = parent;
+          //cur.parent = parent;
           cur = cur.next;
-          console.log('* step forward with ', node);
+          console.log('* step forward with', node, 'cur is', cur.inspect());
         },
 
         /* step_back: function() { cur = cur.prev;
@@ -51,13 +71,14 @@ PEG.compiler.passes.collectBlocks = function(ast) {
           this.step(node);
           parent = cur;
           level++;
-          console.log('> diving in at ', node, 'level is', level, 'parent is', parent);
+          console.log('> diving in at', node, 'new level is', level, 'cur is', cur);
         },
 
         level_out: function(node) {
-          parent = parent.parent;
+          //cur = parent;
+          parent = cur ? cur.parent : null;
           level--;
-          console.log('< diving out at ', node);
+          console.log('< diving out at', node, 'cur is ', cur);
         },
 
         save_block: function() {
@@ -80,7 +101,7 @@ PEG.compiler.passes.collectBlocks = function(ast) {
         save_label: function(label) {
           if (!_labels[label]) _labels[label] = [];
           _labels[label].push(/*{ node: node } || */cur);
-          console.log('% saved label \'', label, '\' as ', cur.node);
+          console.log('% saved label', '\'' + label + '\'', 'as', cur.node);
         },
 
         finish: function(rule) {
@@ -91,6 +112,7 @@ PEG.compiler.passes.collectBlocks = function(ast) {
           while (p) {
             level = p.level;
             if (!path[level]) path[level] = 0;
+            //console.log(p);
             console.log(level, path.slice(0,level+1).join(':'), p.node, p.parent ? p.parent.node : '-');
             path[level]++;
             p = p.next;
@@ -117,38 +139,45 @@ PEG.compiler.passes.collectBlocks = function(ast) {
       rule:         function(node) { diver.start(curRule, node);
                                      collect(node.expression);
                                      diver.finish(curRule); },
-      named:        function(node) { collect(node.expression);
-                                     diver.step(node); },
-      choice:       function(node) { each(node.alternatives,
+      named:        function(node) { diver.level_in(node);
+                                     collect(node.expression);
+                                     diver.level_out(node); },
+      choice:       function(node) { diver.level_in(node);
+                                     each(node.alternatives,
                                         function(node) { collect(node);
                                                          /*diver.step_back();*/ });
-                                     diver.step(node); },
+                                     diver.level_out(node); },
       sequence:     function(node) { diver.level_in(node);
                                      each(node.elements, collect);
                                      diver.level_out(node); },
-      labeled:      function(node) { diver.step(node);
+      labeled:      function(node) { diver.level_in(node);
                                      diver.save_label(node.label);
-                                     collect(node.expression); },
-      simple_and:   function(node) { collect(node.expression);
-                                     diver.step(node); },
-      simple_not:   function(node) { collect(node.expression);
-                                     diver.step(node); },
+                                     collect(node.expression);
+                                     diver.level_out(node); },
+      simple_and:   function(node) { diver.level_in(node);
+                                     collect(node.expression);
+                                     diver.level_out(node); },
+      simple_not:   function(node) { diver.level_in(node);
+                                     collect(node.expression);
+                                     diver.level_out(node); },
       semantic_and: function(node) { diver.step(node);
                                      diver.save_block(); },
       semantic_not: function(node) { diver.step(node);
                                      diver.save_block(); },
-      optional:     function(node) { collect(node.expression);
-                                     diver.step(node); },
-      zero_or_more: function(node) { collect(node.expression);
-                                     diver.step(node); },
-      one_or_more:  function(node) { collect(node.expression);
-                                     diver.step(node); },
+      optional:     function(node) { diver.level_in(node);
+                                     collect(node.expression);
+                                     diver.level_out(node); },
+      zero_or_more: function(node) { diver.level_in(node);
+                                     collect(node.expression);
+                                     diver.level_out(node); },
+      one_or_more:  function(node) { diver.level_in(node);
+                                     collect(node.expression);
+                                     diver.level_out(node); },
       action:       function(node) { console.log('\\ enter action', node);
                                      diver.level_in(node);
                                      diver.save_block();
                                      collect(node.expression);
-                                     diver.level_out(node);
-                                     diver.step(node); },
+                                     diver.level_out(node); },
       rule_ref:     function(node) { diver.step(node); },
       literal:      function(node) { diver.step(node); },
       any:          function(node) { diver.step(node); },
