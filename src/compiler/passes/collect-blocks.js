@@ -1,4 +1,17 @@
-/* Collect all the functional blocks. */
+/* Collect all the code blocks and parameters they require.
+
+   Since passing named parameters is nearly impossible in JS (the are several solutions,
+   but they hardly affect the speed, which will not work in our case) — we need
+   to collect names of the parameters (labels) to integrate in the code blocks.
+   They depend on the order of nodes and nesting, so we create a tree structure
+   of every rule among with collecting code blocks and when we get the complete
+   structure, we pass them in. In fact, this tree is somewhat very similar in inner structure
+   to contexts maps we get in generate-code pass (except actual values, of course, and
+   the fact that while generating code we go inside context following the
+   rule-reference), but since I want generated code to stay relatively easy-readible
+   (and easy-changeble), I descided to keep contexts in generated parsers instead of
+   thinking on how to give this pre-built tree to the parser. May be this solution
+   will be required to change, anyway, I take the risk again. */
 PEG.compiler.passes.collectBlocks = function(ast) {
 
     var blocks = {},
@@ -20,9 +33,6 @@ PEG.compiler.passes.collectBlocks = function(ast) {
                '    ' + (this.next ? this.next.node.inspect() : '[none]') + '>> }';
         }
       }
-      /*DNode.prototype.inspect = function() {
-
-      }*/
 
       var root = null,
           cur = null,
@@ -89,7 +99,7 @@ PEG.compiler.passes.collectBlocks = function(ast) {
 
           node.blockAddr = { rule: rule,
                              id: bl };
-          var block = { params: '',
+          var block = { params: [],
                         code: node.code };
 
           if (bl === 0) blocks[rule] = [];
@@ -120,6 +130,50 @@ PEG.compiler.passes.collectBlocks = function(ast) {
           //console.log('labels', labels);
           //console.log('blocks', blocks);
           console.log('===================================');
+          for (var label in _labels) {
+            var l_nodes = _labels[label],
+                count = l_nodes.length;
+            while(count--) {
+              this._matchLabelToBlocks(rule, label, l_nodes[count], _blocks);
+            }
+          }
+        },
+
+        _matchLabelToBlocks: function(rule, label, l_node, blocks) {
+          var l_level = l_node.level;
+          var wrap_block;
+          // if label node is wrapped in some block-having node,
+          // than this block has access to this label, save it as its parameter
+          if (wrap_block = this._hasWrappingBlock(l_node)) {
+            this._addCodeBlockParam(rule, wrap_block, label);
+          }
+          // if there are next blocks on the same level or below, they
+          // also have access to this label
+          var n = l_node.next;
+          while (n && (n.level >= l_level)) {
+            if (this._hasCodeBlock(n)) {
+              this._addCodeBlockParam(rule, n, label);
+            }
+            n = n.next;
+          }
+        },
+
+        _hasCodeBlock: function(dnode) {
+          return dnode.node.blockAddr;
+        },
+
+        _addCodeBlockParam: function(rule, dnode, param) {
+          blocks[rule][dnode.node.blockAddr.id].params.push(param);
+          console.log('::', rule, '} adding param <', param, '> to a block: <',
+                      blocks[rule][dnode.node.blockAddr.id], '>');
+        },
+
+        _hasWrappingBlock: function(dnode) {
+          if (dnode.parent && this._hasCodeBlock(dnode.parent)) return dnode.parent;
+          if (dnode.parent && dnode.parent.parent &&
+              (dnode.parent.node.type === 'sequence') &&
+              this._hasCodeBlock(dnode.parent.parent)) return dnode.parent.parent;
+          return null;
         }
 
       }
