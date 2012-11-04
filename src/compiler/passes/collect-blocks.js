@@ -123,7 +123,8 @@ PEG.compiler.passes.collectBlocks = function(ast) {
             level = p.level;
             if (!path[level]) path[level] = 0;
             //console.log(p);
-            console.log(level, path.slice(0,level+1).join(':'), p.node, p.parent ? p.parent.node : '-');
+            console.log(level, path.slice(0,level+1).join(':'), p.node, p.parent ? p.parent.node : '-',
+                                                                p.next, p.next   ? p.next.node   : '-');
             path[level]++;
             p = p.next;
           }
@@ -140,18 +141,21 @@ PEG.compiler.passes.collectBlocks = function(ast) {
         },
 
         _matchLabelToBlocks: function(rule, label, l_node, blocks) {
+          console.log('analysing', l_node.node);
           var l_level = l_node.level;
           var wrap_block;
           // if label node is wrapped in some block-having node,
           // than this block has access to this label, save it as its parameter
           if (wrap_block = this._hasWrappingBlock(l_node)) {
+            console.log(':: has a wrapper', wrap_block.node);
             this._addCodeBlockParam(rule, wrap_block, label);
           }
           // if there are next blocks on the same level or below, they
           // also have access to this label
           var n = l_node.next;
-          while (n && (n.level >= l_level)) {
-            if (this._hasCodeBlock(n)) {
+          while (n) {
+            console.log(':: checking', n.node, l_level, n.level, n.level >= l_level);
+            if ((n.level >= l_level) && this._hasCodeBlock(n)) {
               this._addCodeBlockParam(rule, n, label);
             }
             n = n.next;
