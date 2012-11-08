@@ -264,7 +264,7 @@ Requirements are:
 
 If your environment meets the requirements, run this:
 
-    make clean parser dist
+    make clean dist parser
 
 Now, if you ever change the code, you may eventually run:
 
