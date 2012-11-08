@@ -1,6 +1,8 @@
 PEG.js IMproved
 ===============
 
+[![Build Status](https://secure.travis-ci.org/shamansir/pegjs.png)](https://travis-ci.org/shamansir/pegjs)
+
 PEG.js is a simple parser generator for JavaScript that produces fast parsers with excellent error reporting. You can use it to process complex data or computer languages and build transformers, interpreters, compilers and other tools easily.
 
 _IMproved_ is the modified version of [standard `PEG.js`](http://pegjs.majda.cz) which generates much more human-readable and compact parsers, it is a benefit especially when your grammar has a lot of complex expressions.
