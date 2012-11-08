@@ -2,4 +2,7 @@ language: cpp
 compiler:
   - gcc
   - clang
+before_script:
+    - "sudo npm install -g uglify-js"
+    - "sudo npm install -g jshint"
 script: make clean dist && make spec
