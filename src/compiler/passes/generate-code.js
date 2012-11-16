@@ -998,7 +998,9 @@ PEG.compiler.passes.generateCode = function(ast, options) {
         if (node.blocks[rule]) {
           blocksDef = true;
           each(node.blocks[rule], function(block) {
-            block.paramsList = "'" + block.params.join("','") + "'";
+            block.paramsCode = (block.params.length > 0) ?
+                               ? "ctx." + block.params.join(",ctx.")
+                               : "";
           });
         }
       });
