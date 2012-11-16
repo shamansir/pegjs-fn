@@ -287,7 +287,7 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             // TODO: write there about a trick: https://github.com/dmajda/pegjs/pull/94
             // TODO: look through peg.js pull requests
             '  #if initializerDef || blocksDef',
-            '    var __parser = function() {',
+            '    var __blocks = function() {',
             '      #if initializerDef',
             '        /* INITIALIZER */',
             '        #block initializer',
@@ -301,15 +301,22 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             // TODO: generate integer constants for rules ids
             '              #{string(rule)}: [',
             '                #for userBlock in blocks[rule]',
-            '                  function(cctx) {',
-            '                    return (function(#{userBlock.params}) {',
-            // TODO: we may predict labels when collecting blocks'
+            '                  #if userBlock.params.length > 0',
+            '                    function(cctx) { return (function(#{userBlock.params}) {',
             '                      #block userBlock.code',
-            '                    })(/**/);',
-            '                  #if !isLast',
-            '                    },',
+            '                    #if !isLast',
+            '                      })(_get(cctx,[#{userBlock.paramsList}])); },',
+            '                    #else',
+            '                      })(_get(cctx,[#{userBlock.paramsList}])); }',
+            '                    #end',
             '                  #else',
-            '                    }',
+            '                    function() {',
+            '                      #block userBlock.code',
+            '                    #if !isLast',
+            '                      },',
+            '                    #else',
+            '                      }',
+            '                    #end',
             '                  #end',
             '                #end',
             '              #if !isLast',
@@ -325,6 +332,7 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             '      #end',
             '    }',
             '    var ƒ = null;',
+            // TODO: it is easy to switch current rule to ƒ, instead of all blocks
             '  #end',
             '  ',
             '  /* PARSER CODE */',
@@ -497,7 +505,7 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             /* =================== CONTEXT ====================== */
             '    /* CONTEXT */',
             '    ',
-            '    #if stats.action || stats.rule_ref',
+            '    #if blocksDef || stats.action || stats.rule_ref || stats.semantic_and || stats.semantic_not',
             '      function ctx_lvl(parent) {',
             '        function CtxLevel() {',
             '            this.__p = parent;',
@@ -807,7 +815,7 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             '        #if initializerDef || blocksDef',
             '          // call user initializer and also',
             '          // get blocks lying in the same context',
-            '          ƒ = __parser();',
+            '          ƒ = __blocks();',
             '          ',
             '        #end',
             '        // find start rule',
@@ -855,6 +863,9 @@ PEG.compiler.passes.generateCode = function(ast, options) {
           ],
           rule: [
             'rules.#{node.name} = function() {',
+            '  #if node.hasBlocks',
+            '    var _code = ƒ.#{node.name};',
+            '  #end',
             '  return (',
             '    #block code',
             '  ());',
@@ -900,11 +911,13 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             ')'
           ],
           semantic_and: [
-            'pre(ƒ.#{blockAddr.rule}[#{blockAddr.id}](cctx))',
+            //'pre(ƒ.#{blockAddr.rule}[#{blockAddr.id}](cctx))',
+            'pre(_code[#{blockAddr.id}](cctx))',
             '    #block </*{> node.code <}*/>'
           ],
           semantic_not: [
-            'xpre(ƒ.#{blockAddr.rule}[#{blockAddr.id}](cctx))',
+            //'xpre(ƒ.#{blockAddr.rule}[#{blockAddr.id}](cctx))',
+            'xpre(_code[#{blockAddr.id}](cctx))',
             '     #block </*{> node.code <}*/>'
           ],
           optional: [
@@ -925,7 +938,8 @@ PEG.compiler.passes.generateCode = function(ast, options) {
           action: [
             'action(',
             '  #block expression <,>',
-            '  ƒ.#{blockAddr.rule}[#{blockAddr.id}](cctx))',
+            //'  ƒ.#{blockAddr.rule}[#{blockAddr.id}](cctx))',
+            '  _code[#{blockAddr.id}](cctx))',
             '  #block </*{> node.code <}*/>'
           ],
           rule_ref: [
@@ -981,7 +995,12 @@ PEG.compiler.passes.generateCode = function(ast, options) {
 
       var blocksDef = false;
       each(rulesNames, function(rule) {
-        if (node.blocks[rule]) blocksDef = true;
+        if (node.blocks[rule]) {
+          blocksDef = true;
+          each(node.blocks[rule], function(block) {
+            block.paramsList = "'" + block.params.join("','") + "'";
+          });
+        }
       });
 
       return fill("grammar", {
