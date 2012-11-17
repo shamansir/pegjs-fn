@@ -8,6 +8,9 @@ PEG.compiler.passes.generateCode = function(ast, options) {
     options.trackLineAndColumn = false;
   }
 
+  var CODE_VAR = 'ƒ';
+  var CTX_VAR = 'ơ';
+
   /*
    * Codie 1.1.0
    *
@@ -287,7 +290,7 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             // TODO: write there about a trick: https://github.com/dmajda/pegjs/pull/94
             // TODO: look through peg.js pull requests
             '  #if initializerDef || blocksDef',
-            '    var __blocks = function() {',
+            '    var __blocks = (function() { return function() {',
             '      #if initializerDef',
             '        /* INITIALIZER */',
             '        #block initializer',
@@ -302,12 +305,12 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             '              #{string(rule)}: [',
             '                #for userBlock in blocks[rule]',
             '                  #if userBlock.params.length > 0',
-            '                    function(cctx) { return (function(#{userBlock.params}) {',
+            '                    function('+CTX_VAR+') { return (function(#{userBlock.params}) {',
             '                      #block userBlock.code',
             '                    #if !isLast',
-            '                      })(_get(cctx,[#{userBlock.paramsList}])); },',
+            '                      })(#{userBlock.paramsCode}); },',
             '                    #else',
-            '                      })(_get(cctx,[#{userBlock.paramsList}])); }',
+            '                      })(#{userBlock.paramsCode}); }',
             '                    #end',
             '                  #else',
             '                    function() {',
@@ -330,9 +333,11 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             '      #else',
             '        return {};',
             '      #end',
-            '    }',
-            '    var ƒ = null;',
-            // TODO: it is easy to switch current rule to ƒ, instead of all blocks
+            '    } })();',
+            '    // '+CODE_VAR+' and '+CTX_VAR+' variables are named so creepy just to ensure that parser writer will not use them',
+            '    // for naming variables in his code (only '+CTX_VAR+' may clash in this architecture, in fact),',
+            '    // we hope any modern environment supports Unicode now',
+            '    var '+CODE_VAR+' = null;',
             '  #end',
             '  ',
             '  /* PARSER CODE */',
@@ -815,7 +820,7 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             '        #if initializerDef || blocksDef',
             '          // call user initializer and also',
             '          // get blocks lying in the same context',
-            '          ƒ = __blocks();',
+            '          '+CODE_VAR+' = __blocks();',
             '          ',
             '        #end',
             '        // find start rule',
@@ -864,7 +869,7 @@ PEG.compiler.passes.generateCode = function(ast, options) {
           rule: [
             'rules.#{node.name} = function() {',
             '  #if node.hasBlocks',
-            '    var _code = ƒ.#{node.name};',
+            '    var _code = '+CODE_VAR+'.#{node.name};',
             '  #end',
             '  return (',
             '    #block code',
@@ -911,12 +916,12 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             ')'
           ],
           semantic_and: [
-            //'pre(ƒ.#{blockAddr.rule}[#{blockAddr.id}](cctx))',
+            //'pre('+CODE_VAR+'.#{blockAddr.rule}[#{blockAddr.id}](cctx))',
             'pre(_code[#{blockAddr.id}](cctx))',
             '    #block </*{> node.code <}*/>'
           ],
           semantic_not: [
-            //'xpre(ƒ.#{blockAddr.rule}[#{blockAddr.id}](cctx))',
+            //'xpre('+CODE_VAR+'.#{blockAddr.rule}[#{blockAddr.id}](cctx))',
             'xpre(_code[#{blockAddr.id}](cctx))',
             '     #block </*{> node.code <}*/>'
           ],
@@ -938,7 +943,7 @@ PEG.compiler.passes.generateCode = function(ast, options) {
           action: [
             'action(',
             '  #block expression <,>',
-            //'  ƒ.#{blockAddr.rule}[#{blockAddr.id}](cctx))',
+            //'  '+CODE_VAR+'.#{blockAddr.rule}[#{blockAddr.id}](cctx))',
             '  _code[#{blockAddr.id}](cctx))',
             '  #block </*{> node.code <}*/>'
           ],
@@ -998,9 +1003,9 @@ PEG.compiler.passes.generateCode = function(ast, options) {
         if (node.blocks[rule]) {
           blocksDef = true;
           each(node.blocks[rule], function(block) {
-            block.paramsCode = (block.params.length > 0) ?
-                               ? "ctx." + block.params.join(",ctx.")
-                               : "";
+            block.paramsCode = (block.params.length > 0)
+                               ? CTX_VAR + '.' + block.params.join(','+CTX_VAR+'.')
+                               : '';
           });
         }
       });
