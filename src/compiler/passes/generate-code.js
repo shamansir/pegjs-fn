@@ -8,8 +8,9 @@ PEG.compiler.passes.generateCode = function(ast, options) {
     options.trackLineAndColumn = false;
   }
 
-  var CODE_VAR = 'ƒ';
-  var CTX_VAR = 'ċ';
+  var CODE_VAR = 'ƒ',
+      CTX_VAR = 'ċ',
+      CHUNK_VAR = '_chunk';
 
   /*
    * Codie 1.1.0
@@ -315,6 +316,18 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             '        // '+CODE_VAR+' and '+CTX_VAR+' variables are named so creepy just to ensure that parser writer will not use them',
             '        // for naming variables in his code (only '+CTX_VAR+' may clash in this architecture, in fact),',
             '        // we hope any modern environment supports Unicode now',
+            /* TODO:
+            '        var ___obj = {},',
+            '            ___cursor;',
+            '        #for rule in rulesNames',
+            '          #if blocks[rule]',
+            '            ___obj.#{string(rule)} = []',
+            '            ___cursor = ___obj.#{string(rule)}',
+            '            #for userBlock in blocks[rule]',
+            '             ...',
+            '            #end',
+            '          #end',
+            '        #end', */
             '        ',
             '        return {',
             '          #for rule in rulesNames',
@@ -324,26 +337,26 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             '                #for userBlock in blocks[rule]',
             '                  #if userBlock.params.length > 0',
             // TODO: replace `chunk` with separate vars, but try to reduce repeating it for all code blocks
-            '                    function('+CTX_VAR+',chunk) { return (function(chunk,#{userBlock.params}) {',
+            '                    function('+CTX_VAR+','+CHUNK_VAR+') { return (function('+CHUNK_VAR+',#{userBlock.params}) {',
             '                      #block userBlock.code',
             '                    #if !isLast',
             '                      #if userBlock.paramsCode.length > 0',
-            '                        })(chunk,#{userBlock.paramsCode}); },',
+            '                        })('+CHUNK_VAR+',#{userBlock.paramsCode}); },',
             '                      #else',
-            '                        })(chunk); },',
+            '                        })('+CHUNK_VAR+'); },',
             '                      #end',
             '                    #else',
             '                      #if userBlock.paramsCode.length > 0',
-            '                        })(chunk,#{userBlock.paramsCode}); }',
+            '                        })('+CHUNK_VAR+',#{userBlock.paramsCode}); }',
             '                      #else',
-            '                        })(chunk); }',
+            '                        })('+CHUNK_VAR+'); }',
             '                      #end',
             '                    #end',
             '                  #else',
-            '                    function('+CTX_VAR+', chunk) {',
-            '                      return (function(chunk) {',
+            '                    function('+CTX_VAR+', '+CHUNK_VAR+') {',
+            '                      return (function('+CHUNK_VAR+') {',
             '                        #block userBlock.code',
-            '                      })(chunk)',
+            '                      })('+CHUNK_VAR+')',
             '                    #if !isLast',
             '                      },',
             '                    #else',
