@@ -147,7 +147,7 @@ On the top level, the grammar consists of *rules* (in our example, there are fiv
 
 A rule name must be a JavaScript identifier. It is followed by an equality sign (“=”) and a parsing expression. If the rule has a human-readable name, it is written as a JavaScript string between the name and separating equality sign. Rules need to be separated only by whitespace (their beginning is easily recognizable), but a semicolon (“;”) after the parsing expression is allowed.
 
-Rules can be preceded by an *initializer* — a piece of JavaScript code in curly braces (“{” and “}”). This code is executed before the generated parser starts parsing. All variables and functions defined in the initializer are accessible in rule actions and semantic predicates. Curly braces in the initializer code must be balanced.
+Rules can be preceded by an *initializer* — a piece of JavaScript code in curly braces (“{” and “}”). This code is executed before the generated parser starts parsing. All variables and functions defined in the initializer are accessible in rule actions and semantic predicates. Curly braces in the initializer code must be balanced. Be aware **not** to use `return` operation in initializer code without enclosing it in any function, it will exit before executing any of your actions.
 
 The parsing expressions of the rules are used to match the input text to the grammar. There are various types of expressions — matching characters or character classes, indicating optional parts and repetition, etc. Expressions can also contain references to other rules. See detailed description below.
 

@@ -124,7 +124,7 @@ describe("generated parser", function() {
           'b = "x" { return "b"; }'
         ].join("\n"));
 
-    it("uses the fist rule as a start rule when no |startRule| is specified", function() {
+    it("uses the first rule as a start rule when no |startRule| is specified", function() {
       expect(parser.parse("x")).toBe("a");
     });
 

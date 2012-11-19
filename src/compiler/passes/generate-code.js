@@ -286,18 +286,36 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             /* =============== USER BLOCK ================ */
             '  /* PARSER ENVIRONMENT */',
             '  ',
+            '  var input;',
+            '  ',
             // TODO: ensure input variable is accesible to user
-            // TODO: write there about a trick: https://github.com/dmajda/pegjs/pull/94
+            // TODO: integer constants as rules ids
             // TODO: look through peg.js pull requests
             '  #if initializerDef || blocksDef',
+            // TODO: write there about a trick: https://github.com/dmajda/pegjs/pull/94
+            '    // This code encloses all of the user blocks (initializer and/or actions)',
+            '    // in their own sandbox, so if there is an initializer, its inner variables',
+            '    // will [only] be accessible to actions; this, however, requires an initializer',
+            '    // not to have any first-level return statements. Also, this approach keeps parser',
+            '    // inner variables safe from user access, except the ones defined above.',
             '    var __blocks = (function() { return function() {',
             '      #if initializerDef',
+            '        ',
             '        /* INITIALIZER */',
             '        #block initializer',
-            '      ',
             '      #end',
+            '      ',
             '      #if blocksDef',
             '        /* BLOCKS */',
+            '        ',
+            '        // Blocks are grouped by rule name and id; they all get access to current context',
+            '        // through '+CTX_VAR+' variable which they expand into their arguments. Arguments',
+            '        // names are precalculated during parser generation process.',
+            '        ',
+            '        // '+CODE_VAR+' and '+CTX_VAR+' variables are named so creepy just to ensure that parser writer will not use them',
+            '        // for naming variables in his code (only '+CTX_VAR+' may clash in this architecture, in fact),',
+            '        // we hope any modern environment supports Unicode now',
+            '        ',
             '        return {',
             '          #for rule in rulesNames',
             '            #if blocks[rule]',
@@ -330,14 +348,16 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             '            #end',
             '          #end',
             '        };',
+            '        ',
             '      #else',
             '        return {};',
             '      #end',
             '    } })();',
+            '    ',
             '    // '+CODE_VAR+' and '+CTX_VAR+' variables are named so creepy just to ensure that parser writer will not use them',
             '    // for naming variables in his code (only '+CTX_VAR+' may clash in this architecture, in fact),',
             '    // we hope any modern environment supports Unicode now',
-            '    var '+CODE_VAR+' = null;',
+            '    var '+CODE_VAR+' = null; // holds a pointer to current rule blocks, will be initialized in parse() function',
             '  #end',
             '  ',
             '  /* PARSER CODE */',
@@ -384,6 +404,7 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             '    }',
             '    ',
             /* =================== VARIABLES ==================== */
+            // TODO: more comments
             '    /* VARIABLES */',
             '    ',
             '    var rules = {},', // FIXME: give "_" prefix for all inner names?
@@ -541,18 +562,9 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             '    ',
             /* =================== DEFERRED ===================== */
             '    /* DEFERRED */',
+            '    // Makes passed function to save its argument values,',
+            '    // but not execute until specially requested',
             '    ',
-            /*    function bind(f, args) {
-                    return function() {
-                        return f.apply(null, args);
-                    };
-                  }
-                  function wrap(f) {
-                    return function() {
-                      return bind(f, arguments);
-                    };
-                  }
-              */
             '    function def(f) {',
             '      return function() {',
             '        return (function(f, args) {',
@@ -807,10 +819,10 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             '       * unsuccessful, throws |PEG.parser.MatchFailed| describing the error.',
             '       */',
             /* =================== PARSE FUNCTION =============== */
-            '      parse: function(input, startRule) {',
+            '      parse: function(_input, startRule) {',
             '        ',
             '        // initialize variables',
-            '        pos = 0, ilen = input.length, g.input = input;',
+            '        pos = 0, ilen = _input.length, input = _input;',
             '        failures = {}, rmfpos = 0, nr = 0;',
             '        ',
             '        cache = {};',
