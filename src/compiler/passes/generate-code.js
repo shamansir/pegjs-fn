@@ -129,6 +129,7 @@ PEG.compiler.passes.generateCode = function(ast, options) {
              + c + '=' + params[1] + ';'
                  + l + '=' + c + '.length;'
                  + 'for(' + i + '=0;' + i + '<' + l + ';' + i + '++){'
+                     + 'var idx = (' + i + ');'
                      + 'var isLast = (' + i + '==(' + l + '-1));'
                      + params[0] + '=' + c + '[' + i + '];',
             [params[0], c, l, i]
@@ -337,26 +338,22 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             '                #for userBlock in blocks[rule]',
             '                  #if userBlock.params.length > 0',
             // TODO: replace `chunk` with separate vars, but try to reduce repeating it for all code blocks
-            '                    function('+CTX_VAR+','+CHUNK_VAR+') { return (function('+CHUNK_VAR+',#{userBlock.params}) {',
-            '                      #block userBlock.code',
+            '                    function('+CTX_VAR+','+CHUNK_VAR+') {',
+            '                      // #{rule}[#{idx}]',
+            '                      return (function('+CHUNK_VAR+',#{userBlock.params}) {',
+            '                        #block userBlock.code',
+            '                      })('+CHUNK_VAR+',#{userBlock.paramsCode});',
             '                    #if !isLast',
-            '                      #if userBlock.paramsCode.length > 0',
-            '                        })('+CHUNK_VAR+',#{userBlock.paramsCode}); },',
-            '                      #else',
-            '                        })('+CHUNK_VAR+'); },',
-            '                      #end',
+            '                      },',
             '                    #else',
-            '                      #if userBlock.paramsCode.length > 0',
-            '                        })('+CHUNK_VAR+',#{userBlock.paramsCode}); }',
-            '                      #else',
-            '                        })('+CHUNK_VAR+'); }',
-            '                      #end',
+            '                      }',
             '                    #end',
             '                  #else',
             '                    function('+CTX_VAR+', '+CHUNK_VAR+') {',
+            '                      // #{rule}[#{idx}]',
             '                      return (function('+CHUNK_VAR+') {',
             '                        #block userBlock.code',
-            '                      })('+CHUNK_VAR+')',
+            '                      })('+CHUNK_VAR+');',
             '                    #if !isLast',
             '                      },',
             '                    #else',

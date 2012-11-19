@@ -226,9 +226,9 @@ describe("generated parser", function() {
         expect(parser).toParse("a", "a");
       });
 
-      it("can use the |offset| variable to get the current parse position", function() {
+      it("can use the |_chunk.pos| variable to get the current parse position", function() {
         var parser = PEG.buildParser(
-              'start = "a" ("b" { return offset; })',
+              'start = "a" ("b" { return _chunk.pos; })',
               options
             );
 
@@ -381,9 +381,9 @@ describe("generated parser", function() {
         expect(parser).toParse("a", ["a", ""]);
       });
 
-      it("can use the |offset| variable to get the current parse position", function() {
+      it("can use the |_chunk.pos| variable to get the current parse position", function() {
         var parser = PEG.buildParser(
-              'start = "a" &{ return offset === 1; }',
+              'start = "a" &{ return _chunk.pos === 1; }',
               options
             );
 
@@ -456,9 +456,9 @@ describe("generated parser", function() {
         expect(parser).toParse("a", ["a", ""]);
       });
 
-      it("can use the |offset| variable to get the current parse position", function() {
+      it("can use the |_chunk.pos| variable to get the current parse position", function() {
         var parser = PEG.buildParser(
-              'start = "a" !{ return offset !== 1; }',
+              'start = "a" !{ return _chunk.pos !== 1; }',
               options
             );
 
@@ -745,7 +745,7 @@ describe("generated parser", function() {
           var parser = PEG.buildParser('start = ', options);
 
           expect(parser).toFailToParse("a", {
-            message: 'Expected end of input but "a" found.'
+            message: 'Expected end of input, but "a" found.'
           });
         });
 
@@ -753,7 +753,7 @@ describe("generated parser", function() {
           var parser = PEG.buildParser('start = "a"', options);
 
           expect(parser).toFailToParse("b", {
-            message: 'Expected "a" but "b" found.'
+            message: 'Expected "a", but "b" found.'
           });
         });
 
@@ -761,7 +761,7 @@ describe("generated parser", function() {
           var parser = PEG.buildParser('start = "a" / "b" / "c"', options);
 
           expect(parser).toFailToParse("d", {
-            message: 'Expected "a", "b" or "c" but "d" found.'
+            message: 'Expected "a", "b" or "c", but "d" found.'
           });
         });
 
@@ -769,7 +769,7 @@ describe("generated parser", function() {
           var parser = PEG.buildParser('start = "a"', options);
 
           expect(parser).toFailToParse("", {
-            message: 'Expected "a" but end of input found.'
+            message: 'Expected "a", but end of input found.'
           });
         });
 
@@ -777,7 +777,7 @@ describe("generated parser", function() {
           var parser = PEG.buildParser('start = "a"', options);
 
           expect(parser).toFailToParse("b", {
-            message: 'Expected "a" but "b" found.'
+            message: 'Expected "a", but "b" found.'
           });
         });
       });
@@ -954,7 +954,7 @@ describe("generated parser", function() {
   });
 
 // TODO: test our version of rules cache
-// TODO: test chunk variable
+// TODO: test _chunk variable (except _chunk.pos and with it) and option to split it in separate vars
 // TODO: test rules prepared once module is loaded
 // TODO: test user code has no access to outer functions
 // TODO: test operators prepared once module is loaded
