@@ -959,6 +959,7 @@ describe("generated parser", function() {
 // TODO: test operators prepared once module is loaded
 // TODO: test operators not executed when not required and executed in order
 // TODO: test all exported functions (including xpos here and there)
+// TODO: test context separately of all the things
 // TODO: test levels of context and variables are inaccessible between code block at the same level
 // TODO: test errors a lot (including internal information of the error, see https://github.com/shamansir/pegjs/compare/master...fixing-tests#L2R670
 // TODO: test positions a lot (if they are accessible to all blocks and stuff)

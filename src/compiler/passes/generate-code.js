@@ -9,7 +9,7 @@ PEG.compiler.passes.generateCode = function(ast, options) {
   }
 
   var CODE_VAR = 'ƒ';
-  var CTX_VAR = 'ơ';
+  var CTX_VAR = 'ċ';
 
   /*
    * Codie 1.1.0
