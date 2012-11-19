@@ -19,22 +19,6 @@ PEG.compiler.passes.collectBlocks = function(ast) {
 
     var diver = (function() {
 
-      function DNode(level, node, parent) { // FIXME: change to general JS object when inspect
-                                            // will not be required
-        this.level = level;
-        this.node = node;
-        this.parent = parent;
-        this.inspect = function() {
-          var pad = '    ';
-          return '\n' + pad + '{ ' + this.level + '\n' + pad +
-               '>--(' + this.node.inspect() + ')--<\n' + pad +
-               '   ^' + (this.parent ? this.parent.node.inspect() : '[none]') + '^\n' + pad +
-               '  <<' + (this.prev ? this.prev.node.inspect() : '[none]') + '\n' + pad +
-
-               '    ' + (this.next ? this.next.node.inspect() : '[none]') + '>> }';
-        }
-      }
-
       var root = null,
           cur = null,
           parent = null,
@@ -48,7 +32,6 @@ PEG.compiler.passes.collectBlocks = function(ast) {
       return {
 
         _reset: function() {
-          console.log('x resetting');
           root = null;
           cur = null;
           parent = null;
@@ -58,30 +41,25 @@ PEG.compiler.passes.collectBlocks = function(ast) {
         },
 
         start: function(rule, node) {
-          console.log('--------------------------/', rule, '\\--------------------------');
           this._reset();
           level = 0;
-          root = new DNode(level, node); // { node: node, level: level };
+          root = { level: level, node: node };
           cur = root;
-          console.log('* root is', node);
         },
 
         step: function(node) {
-          cur.next = new DNode(level, node, parent);
-            // { node: node, level: level,
-            //           parent: parent };
+          cur.next = { level: level, node: node,
+                       parent: parent };
           cur.next.prev = cur;
           cur = cur.next;
-          console.log('* step forward with', node, 'cur is', cur.inspect());
         },
 
-        /* step_back: function() { cur = cur.prev;
-                                console.log('* stepping back to ', cur.node); }, */
+        /* step_back: function() { cur = cur.prev; }, */
 
         level_in: function(node) {
           level++;
-          parent = new DNode(level, node, parent);
-          console.log('> diving in at', node, 'new level is', level, 'cur is', cur.inspect());
+          parent = { level: level, node: node,
+                     parent: parent };
         },
 
         level_out: function(node) {
@@ -90,7 +68,6 @@ PEG.compiler.passes.collectBlocks = function(ast) {
           cur.next.prev = cur;
           cur = cur.next;
           parent = cur ? cur.parent : null;
-          console.log('< diving out at', node, 'cur is ', cur.inspect());
         },
 
         save_block: function(rule) {
@@ -109,32 +86,23 @@ PEG.compiler.passes.collectBlocks = function(ast) {
           _blocks.push(cur);
 
           root.node.hasBlocks = true;
-          //console.log(node, '-->', block);
         },
 
         save_label: function(label) {
           if (!_labels[label]) _labels[label] = [];
           _labels[label].push(/*{ node: node } || */cur);
-          console.log('% saved label', '\'' + label + '\'', 'as', cur.node);
         },
 
         finish: function(rule) {
-          console.log(':::::::::::::::::::::::::::::::::::::::::::::::::::::>>');
           var path = [ 0 ],
               level = 0;
           var p = root;
           while (p) {
             level = p.level;
             if (!path[level]) path[level] = 0;
-            //console.log(p);
-            console.log(level, path.slice(0,level+1).join(':'), p.node, p.parent ? p.parent.node : '-',
-                                                                p.next, p.next   ? p.next.node   : '-');
             path[level]++;
             p = p.next;
           }
-          //console.log('labels', labels);
-          //console.log('blocks', blocks);
-          console.log('=====================================================>>');
           for (var label in _labels) {
             var l_nodes = _labels[label],
                 count = l_nodes.length;
@@ -142,24 +110,20 @@ PEG.compiler.passes.collectBlocks = function(ast) {
               this._matchLabelToBlocks(rule, label, l_nodes[count], _blocks);
             }
           }
-          console.log('--------------------------\\', rule, '/--------------------------');
         },
 
         _matchLabelToBlocks: function(rule, label, l_node, blocks) {
-          console.log('analysing', l_node.node);
           var l_level = l_node.level;
           var wrap_block;
           // if label node is wrapped in some block-having node,
           // than this block has access to this label, save it as its parameter
           if (wrap_block = this._hasWrappingBlock(l_node)) {
-            console.log(':: has a wrapper', wrap_block.node);
             this._addCodeBlockParam(rule, wrap_block, label);
           }
           // if there are next blocks on the same level or below, they
           // also have access to this label
           var n = l_node.next;
           while (n) {
-            console.log(':: checking', n.node, l_level, n.level, n.level >= l_level);
             if ((n.level >= l_level) && this._hasCodeBlock(n)) {
               this._addCodeBlockParam(rule, n, label);
             }
@@ -173,8 +137,6 @@ PEG.compiler.passes.collectBlocks = function(ast) {
 
         _addCodeBlockParam: function(rule, dnode, param) {
           blocks[rule][dnode.node.blockAddr.id].params.push(param);
-          console.log('::', rule, '} adding param <', param, '> to a block: <',
-                      blocks[rule][dnode.node.blockAddr.id], '>');
         },
 
         _hasWrappingBlock: function(dnode) {
@@ -236,8 +198,7 @@ PEG.compiler.passes.collectBlocks = function(ast) {
       one_or_more:  function(node) { diver.level_in(node);
                                      collect(node.expression);
                                      diver.level_out(node); },
-      action:       function(node) { console.log('\\ enter action', node);
-                                     diver.level_in(node);
+      action:       function(node) { diver.level_in(node);
                                      collect(node.expression);
                                      diver.level_out(node);
                                      diver.save_block(); },

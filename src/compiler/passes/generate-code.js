@@ -978,7 +978,6 @@ PEG.compiler.passes.generateCode = function(ast, options) {
 
   function ensureHasAddr(node) {
     if (!node.blockAddr) {
-        console.log(node);
         throw new Error('No block address data for '+
               node.type+' node, seems \'collect-blocks\' '+
               'pass was not performed or failed');
