@@ -323,16 +323,27 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             '              #{string(rule)}: [',
             '                #for userBlock in blocks[rule]',
             '                  #if userBlock.params.length > 0',
-            '                    function('+CTX_VAR+') { return (function(#{userBlock.params}) {',
+            // TODO: replace `chunk` with separate vars, but try to reduce repeating it for all code blocks
+            '                    function('+CTX_VAR+',chunk) { return (function(chunk,#{userBlock.params}) {',
             '                      #block userBlock.code',
             '                    #if !isLast',
-            '                      })(#{userBlock.paramsCode}); },',
+            '                      #if userBlock.paramsCode.length > 0',
+            '                        })(chunk,#{userBlock.paramsCode}); },',
+            '                      #else',
+            '                        })(chunk); },',
+            '                      #end',
             '                    #else',
-            '                      })(#{userBlock.paramsCode}); }',
+            '                      #if userBlock.paramsCode.length > 0',
+            '                        })(chunk,#{userBlock.paramsCode}); }',
+            '                      #else',
+            '                        })(chunk); }',
+            '                      #end',
             '                    #end',
             '                  #else',
-            '                    function() {',
-            '                      #block userBlock.code',
+            '                    function('+CTX_VAR+', chunk) {',
+            '                      return (function(chunk) {',
+            '                        #block userBlock.code',
+            '                      })(chunk)',
             '                    #if !isLast',
             '                      },',
             '                    #else',
@@ -929,12 +940,12 @@ PEG.compiler.passes.generateCode = function(ast, options) {
           ],
           semantic_and: [
             //'pre('+CODE_VAR+'.#{blockAddr.rule}[#{blockAddr.id}](cctx))',
-            'pre(_code[#{blockAddr.id}](cctx))',
+            'pre(_code[#{blockAddr.id}])',
             '    #block </*{> node.code <}*/>'
           ],
           semantic_not: [
             //'xpre('+CODE_VAR+'.#{blockAddr.rule}[#{blockAddr.id}](cctx))',
-            'xpre(_code[#{blockAddr.id}](cctx))',
+            'xpre(_code[#{blockAddr.id}])',
             '     #block </*{> node.code <}*/>'
           ],
           optional: [
@@ -955,8 +966,8 @@ PEG.compiler.passes.generateCode = function(ast, options) {
           action: [
             'action(',
             '  #block expression <,>',
-            //'  '+CODE_VAR+'.#{blockAddr.rule}[#{blockAddr.id}](cctx))',
-            '  _code[#{blockAddr.id}](cctx))',
+            //'  '+CODE_VAR+'.#{blockAddr.rule}[#{blockAddr.id}])',
+            '  _code[#{blockAddr.id}])',
             '  #block </*{> node.code <}*/>'
           ],
           rule_ref: [

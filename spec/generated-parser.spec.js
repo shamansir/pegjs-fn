@@ -953,7 +953,8 @@ describe("generated parser", function() {
     });
   });
 
-// TODO: test our version of cache
+// TODO: test our version of rules cache
+// TODO: test chunk variable
 // TODO: test rules prepared once module is loaded
 // TODO: test user code has no access to outer functions
 // TODO: test operators prepared once module is loaded
