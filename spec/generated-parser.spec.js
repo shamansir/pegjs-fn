@@ -955,6 +955,7 @@ describe("generated parser", function() {
 
 // TODO: test our version of rules cache
 // TODO: test _chunk variable (except _chunk.pos and with it) and option to split it in separate vars
+// TODO: test all options
 // TODO: test rules prepared once module is loaded
 // TODO: test user code has no access to outer functions
 // TODO: test operators prepared once module is loaded

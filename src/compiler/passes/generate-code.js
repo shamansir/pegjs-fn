@@ -317,18 +317,6 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             '        // '+CODE_VAR+' and '+CTX_VAR+' variables are named so creepy just to ensure that parser writer will not use them',
             '        // for naming variables in his code (only '+CTX_VAR+' may clash in this architecture, in fact),',
             '        // we hope any modern environment supports Unicode now',
-            /* TODO:
-            '        var ___obj = {},',
-            '            ___cursor;',
-            '        #for rule in rulesNames',
-            '          #if blocks[rule]',
-            '            ___obj.#{string(rule)} = []',
-            '            ___cursor = ___obj.#{string(rule)}',
-            '            #for userBlock in blocks[rule]',
-            '             ...',
-            '            #end',
-            '          #end',
-            '        #end', */
             '        ',
             '        return {',
             '          #for rule in rulesNames',
@@ -645,16 +633,11 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             '    #end',
             // named =============
             '    #if stats.named',
-            '      function named(/*...*/) {',
-            '        return \'TODO\'',
+            '      function as(name, f) {',
+            '        current = name;',
+            '        return f();',
             '      }',
-            '      named = def(named);',
-              /*'reportFailures++;',
-              '#block emit(node.expression)',
-              'reportFailures--;',
-              'if (reportFailures === 0 && #{r(node.resultIndex)} === null) {',
-              '  matchFailed(#{string(node.name)});',
-              '}'*/
+            '      as = def(as);',
             '    #end',
             // choice ============
             '    #if stats.choice',
@@ -912,6 +895,11 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             '  names.#{node.name}=#{string(node.displayName)};',
             '#end'
           ],
+          named: [
+            'as(#{string(node.name)},',
+            '  #block expression',
+            ')'
+          ],
           choice: [
             'choice(',
             '  #for expression in beforeLast',
@@ -1067,7 +1055,10 @@ PEG.compiler.passes.generateCode = function(ast, options) {
 
     // ======= COMBINATIONS =======
 
-    named: function(node) { return fill('named', { node: node }); },
+    named: function(node) {
+      return fill('named', { node: node,
+                             expression: emit(node.expression) });
+    },
 
     choice: function(node) {
       var elms = node.alternatives;
