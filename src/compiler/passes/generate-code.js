@@ -313,6 +313,7 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             '        // Blocks are grouped by rule name and id; they all get access to current context',
             '        // through '+CTX_VAR+' variable which they expand into their arguments. Arguments',
             '        // names are precalculated during parser generation process.',
+            // FIXME: No Unicode + AJAX != <3 ? ========
             '        ',
             '        // '+CODE_VAR+' and '+CTX_VAR+' variables are named so creepy just to ensure that parser writer will not use them',
             '        // for naming variables in his code (only '+CTX_VAR+' may clash in this architecture, in fact),',
@@ -416,15 +417,15 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             // TODO: more comments
             '    /* VARIABLES */',
             '    ',
-            '    var rules = {},', // FIXME: give "_" prefix for all inner names?
-            '        names = {};',
+            '    var rules = {};', // FIXME: give "_" prefix for all inner names, or, better, generate int IDs for them?
             '    ',
             '    var pos, // 0, parser position',
             '        cache, // {}, rule results cache, by name/pos',
             '        ctx, // { ... }, total context',
             '        cctx, // { ... }, current context pointer',
             '        ctxl, // 0, context level',
-            '        current; // \'\', current rule name',
+            '        current, // \'\', current rule name',
+            '        alias; // \'\', current rule alias, if defined',
             '    ',
             '    var failures, // {}, failures data',
             '        rmfpos, // 0, rightmost failure position',
@@ -437,7 +438,7 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             '    ',
             '    function MatchFailed(what, found, expected) {',
             '      this.what = what;',
-            '      if (names[what]) this.rname = names[what];',
+            '      if (alias) this.rname = alias;',
             '      this.expected = expected || [];',
             '      this.found = found;',
             '      this.pos = pos;',
@@ -634,10 +635,11 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             // named =============
             '    #if stats.named',
             '      function as(name, f) {',
-            '        current = name;',
-            '        return f();',
+            '        alias = name; var res = f();',
+            '        alias = \'\'; return res;',
             '      }',
             '      as = def(as);',
+            '      ',
             '    #end',
             // choice ============
             '    #if stats.choice',
@@ -890,10 +892,7 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             '  return (',
             '    #block code',
             '  ());',
-            '}', // FIXME: displayName!
-            '#if node.displayName',
-            '  names.#{node.name}=#{string(node.displayName)};',
-            '#end'
+            '}'
           ],
           named: [
             'as(#{string(node.name)},',
