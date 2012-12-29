@@ -377,7 +377,10 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             /* =============== UTILS ===================== */
             '    /* UTILS */',
             '    ',
-            '    var EOI = \'end of input\';',
+            '    var EOI = \'end of input\',',
+            '        ANY = \'any character\',',
+            '        PROGRESS = \'progress\',',
+            '        NOTHING = \'nothing\';',
             '    ',
             /* This needs to be in sync with |hexOf| in utils.js. */
             '    function hexOf(ch) {',
@@ -452,6 +455,7 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             '    };',
             '    ',
             '    function failed(expected, found) {',
+            '      var expected = alias || expected',
             '      // if no report required, just throw',
             '      if (nr) throw merr(found, [expected]);',
             '      if (pos > rmfpos) rmfpos = pos;',
@@ -621,7 +625,7 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             '          var pp = pos, res; // previous pos',
             '          f(); res = code(cctx, chunk(pp));',
             '          if (res === null) { pos = pp;',
-            '             failed(\'progress\', \'nothing\'); }',
+            '             failed(PROGRESS, NOTHING); }',
             '          return res;',
             '        });',
             '      }',
@@ -796,7 +800,7 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             // any
             '    #if stats.any',
             '      function ch() { // char',
-            '        if (pos >= ilen) failed(\'any character\', EOI);',
+            '        if (pos >= ilen) failed(ANY, EOI);',
             '        return input[pos++];',
             '      }',
             '      ch = def(ch);',
