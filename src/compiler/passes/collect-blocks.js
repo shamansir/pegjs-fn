@@ -56,6 +56,16 @@ PEG.compiler.passes.collectBlocks = function(ast) {
 
         /* step_back: function() { cur = cur.prev; }, */
 
+        // level means how deep the node is located in an ast tree;
+        // to simplify labels-collecting logic, there are also a
+        // `prev` and `next` pointers for each node, they work in a
+        // linked-list fashion, ignoring the level of the node, and representing
+        // the human-friendly left-to-right order, with one exception:
+        // a wrapping node goes in a chain just after all of its inner nodes -
+        // so `next` pointer of a last inner node points to the
+        // wrapping node, and `next` pointer of a wrapping node
+        // points to a node going after this wrapping node located on
+        // the same level
         level_in: function(node) {
           level++;
           parent = { level: level, node: node,
@@ -70,6 +80,12 @@ PEG.compiler.passes.collectBlocks = function(ast) {
           parent = cur ? cur.parent : null;
         },
 
+        // code blocks information is saved in two structures;
+        // the first one is within the node, named `blockAddr`, and it contains
+        // unique block address as a pair (rule_name, incremental_id);
+        // the second one is global blocks registry object, where it is located
+        // under mentioned unique address and contains code function itself and
+        // required params names as a string array
         save_block: function(rule) {
           var node = cur.node;
           var rule = rule || curRule;
@@ -93,16 +109,13 @@ PEG.compiler.passes.collectBlocks = function(ast) {
           _labels[label].push(/*{ node: node } || */cur);
         },
 
+        // when the rule finished to be processed,
+        // we know all the labels in the current rule and
+        // all the code blocks corresponding to the current rule;
+        // so we iterate through labels and find the blocks that
+        // correspond to each one and add it there as a parameter
         finish: function(rule) {
-          var path = [ 0 ],
-              level = 0;
-          var p = root;
-          while (p) {
-            level = p.level;
-            if (!path[level]) path[level] = 0;
-            path[level]++;
-            p = p.next;
-          }
+          var level = 0;
           for (var label in _labels) {
             var l_nodes = _labels[label],
                 count = l_nodes.length;
@@ -123,8 +136,8 @@ PEG.compiler.passes.collectBlocks = function(ast) {
           // if there are next blocks on the same level or below, they
           // also have access to this label
           var n = l_node.next;
-          while (n) {
-            if ((n.level >= l_level) && this._hasCodeBlock(n)) {
+          while (n && (n.level >= l_level)) {
+            if (this._hasCodeBlock(n)) {
               this._addCodeBlockParam(rule, n, label);
             }
             n = n.next;
