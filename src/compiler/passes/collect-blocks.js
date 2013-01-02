@@ -67,9 +67,9 @@ PEG.compiler.passes.collectBlocks = function(ast) {
         // points to a node going after this wrapping node located on
         // the same level
         level_in: function(node) {
-          level++;
           parent = { level: level, node: node,
                      parent: parent };
+          level++;
         },
 
         level_out: function(node) {
@@ -115,7 +115,6 @@ PEG.compiler.passes.collectBlocks = function(ast) {
         // so we iterate through labels and find the blocks that
         // correspond to each one and add it there as a parameter
         finish: function(rule) {
-          var level = 0;
           for (var label in _labels) {
             var l_nodes = _labels[label],
                 count = l_nodes.length;
