@@ -1,11 +1,11 @@
-PEG.js FunCtional
+PEG.js FuNctional
 =================
 
 [![Build Status](https://secure.travis-ci.org/shamansir/pegjs.png)](https://travis-ci.org/shamansir/pegjs)
 
 PEG.js is a simple parser generator for JavaScript that produces fast parsers with excellent error reporting. You can use it to process complex data or computer languages and build transformers, interpreters, compilers and other tools easily.
 
-_FunCtional_ is the modified version of [standard `PEG.js`](http://pegjs.majda.cz) which generates much more human-readable and more compact parsers, it is a benefit especially when your grammar has a lot of complex expressions.
+_FuNctional_ is the modified version of [standard `PEG.js`](http://pegjs.majda.cz) which generates much more human-readable and more compact parsers, it is a benefit especially when your grammar has a lot of complex expressions.
 
 **NB**: Development is in progress and even this file is in progress
 
@@ -18,7 +18,7 @@ Features
   * Based on [parsing expression grammar](http://en.wikipedia.org/wiki/Parsing_expression_grammar) formalism — more powerful than traditional LL(*k*) and LR(*k*) parsers
   * Usable [from your browser](http://pegjs.majda.cz/online), from the command line, or via JavaScript API
 
-### PEG.js FunCtional
+### PEG.js FuNctional
 
   Since [one recent commit](https://github.com/dmajda/pegjs/commit/fe1ca481abc7ee5a499a26eed226f06c9c2024d5) in original PegJS, this version is not named PegJS IMproved anymore (this commit fixes most of improvements I've wanted to achieve here), but just remains to be PEG.js FunCtional.
 
@@ -27,17 +27,11 @@ Features
   * The operators and utils functions that not used in grammar are not included to parser code
   * The parser code that should be executed once — is executed once (this was also fixed in the main version, however)
   * The actions variables are strict and given in as arguments to action code
-  <!-- http://bosker.wordpress.com/2012/05/10/on-editing-text/ -->
-
-  <!-- * Rules and operators are prepared once you've loaded the parser, not before every parse call. Even rules parts are already compiled before first parse.
-  * `chunk` variable is always accessible to actions, it stores current chunk of input and its start and end positions (you may use `xpos` function to get line and column for position)
-  * `cpos` variable accessible in semantic blocks
-  * The context for actions variables is strict and given in an object format to the action/semantic blocks code, you may safely put you variables in the context and they will be automatically kept at the required level, no global variables or something like that
-  * Errors contain information about 2-dimesional error position and the failed rule, so you may use it for something like auto-complete
   * The actual tests from standard PEG.js used for testing, expanded with tests on improvements
   * Algorythm is exception-driven, which is a bit safer, a bit simpler and a bit faster way
-  * 2-dimensional position (slow operation) and message are calculated only on fact of real error or when user asks for it
-  * [found/expected data in error is now included in standard peg.js] -->
+  * [found/expected data in error is now included in standard peg.js]
+
+<!-- http://bosker.wordpress.com/2012/05/10/on-editing-text/ -->
 
 Getting Started
 ---------------
