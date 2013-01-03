@@ -1,13 +1,13 @@
-PEG.js IMproved
-===============
+PEG.js FunCtional
+=================
 
 [![Build Status](https://secure.travis-ci.org/shamansir/pegjs.png)](https://travis-ci.org/shamansir/pegjs)
 
 PEG.js is a simple parser generator for JavaScript that produces fast parsers with excellent error reporting. You can use it to process complex data or computer languages and build transformers, interpreters, compilers and other tools easily.
 
-_IMproved_ is the modified version of [standard `PEG.js`](http://pegjs.majda.cz) which generates much more human-readable and compact parsers, it is a benefit especially when your grammar has a lot of complex expressions.
+_FunCtional_ is the modified version of [standard `PEG.js`](http://pegjs.majda.cz) which generates much more human-readable and more compact parsers, it is a benefit especially when your grammar has a lot of complex expressions.
 
-(Development is in progress and even this file is in progress)
+**NB**: Development is in progress and even this file is in progress
 
 Features
 --------
@@ -18,14 +18,15 @@ Features
   * Based on [parsing expression grammar](http://en.wikipedia.org/wiki/Parsing_expression_grammar) formalism — more powerful than traditional LL(*k*) and LR(*k*) parsers
   * Usable [from your browser](http://pegjs.majda.cz/online), from the command line, or via JavaScript API
 
-### PEG.js IMproved
+### PEG.js FunCtional
 
-  * Generated parsers are more human-readable and much more compact (see comparison below)
+  Since [one recent commit](https://github.com/dmajda/pegjs/commit/fe1ca481abc7ee5a499a26eed226f06c9c2024d5) in original PegJS, this version is not named PegJS IMproved anymore (this commit fixes most of improvements I've wanted to achieve here), but just remains to be PEG.js FunCtional.
+
+  * Generated parsers are more human-readable and they are in JS-only, no bytecode (if it is a benefit for you; but I'll also make speed/size the comparison when tests will pass)
   * A virtual JS context is created for user code, so it lies in its own separate environment
   * The operators and utils functions that not used in grammar are not included to parser code
-  * `chunk` variable is accessible to actions, it stores current chunk of input and its start and end positions
   * The parser code that should be executed once — is executed once (this was also fixed in the main version, however)
-  <!-- * The actions variables are strict and given in as arguments to action code -->
+  * The actions variables are strict and given in as arguments to action code
   <!-- http://bosker.wordpress.com/2012/05/10/on-editing-text/ -->
 
   <!-- * Rules and operators are prepared once you've loaded the parser, not before every parse call. Even rules parts are already compiled before first parse.
