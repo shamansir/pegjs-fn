@@ -869,7 +869,7 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             '       * unsuccessful, throws |PEG.parser.MatchFailed| describing the error.',
             '       */',
             /* =================== PARSE FUNCTION =============== */
-            '      parse: function(_input, startRule) {',
+            '      parse: function(_input, _opts) {',
             '        ',
             '        // initialize variables',
             '        pos = 0, ilen = _input.length, input = _input;',
@@ -878,6 +878,8 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             '        cache = {};',
             '        ctxl = -1; ctx = ctx_lvl(), cctx = ctx;',
             '        current = \'-\';',
+            '        ',
+            '        var startRule = _opts.startRule',
             '        ',
             '        #if initializerDef || blocksDef',
             '          // call user initializer and also',
