@@ -1,0 +1,25 @@
+- fix offset and pos stuff
+- use trackLineAndColumn option
+
+- test _chunk variable (except _chunk.pos and with it) and option to split it in separate vars
+- test all options
+- test rules prepared once module is loaded
+- test user code has no access to outer functions
+- test operators prepared once module is loaded
+- test operators not executed when not required and executed in order
+- test all exported functions (including xpos here and there)
+- test context separately of all the things
+- test levels of context and variables are inaccessible between code block at the same level
+- test errors a lot (including internal information of the error, see https://github.com/shamansir/pegjs/compare/master...fixing-tests#L2R670
+- test positions a lot (if they are accessible to all blocks and stuff)
+- test that none of operators or rules are accessible inside client code
+- test that all of exported functions are accessible inside client code
+- test that only one exception reaches parser even if something failed couple of times
+- test that even rules parts are already compiled before first parse
+- test that chunk accessible only in action
+- test ctx is only in initializer,
+-      ctx/cpos is in only in semantic and/not
+-      and ctx/chunk is only in action
+- wrap in inner tests tree when changing to jasmine
+- test rname in MatchFailed error
+- test MatchFailed localisation? (use special codes for "any character" and the stuff)
