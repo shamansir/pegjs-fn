@@ -768,7 +768,7 @@ describe("generated parser", function() {
           var parser = PEG.buildParser('start = "a"', options);
 
           expect(parser).toFailToParse("", {
-            message: 'Expected "a", but end of input found.'
+            message: 'Expected "a" but end of input found.'
           });
         });
 
