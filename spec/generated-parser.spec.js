@@ -118,13 +118,12 @@ describe("generated parser", function() {
   });
 
   describe("parse", function() {
-
     var parser = PEG.buildParser([
           'a = "x" { return "a"; }',
           'b = "x" { return "b"; }'
         ].join("\n"));
 
-    it("uses the first rule as a start rule when no |startRule| is specified", function() {
+    it("uses the fist rule as a start rule when no |startRule| is specified", function() {
       expect(parser.parse("x")).toBe("a");
     });
 
@@ -226,9 +225,9 @@ describe("generated parser", function() {
         expect(parser).toParse("a", "a");
       });
 
-      it("can use the |_chunk.pos| variable to get the current parse position", function() {
+      it("can use the |offset| variable to get the current parse position", function() {
         var parser = PEG.buildParser(
-              'start = "a" ("b" { return _chunk.pos; })',
+              'start = "a" ("b" { return offset; })',
               options
             );
 
@@ -381,9 +380,9 @@ describe("generated parser", function() {
         expect(parser).toParse("a", ["a", ""]);
       });
 
-      it("can use the |_chunk.pos| variable to get the current parse position", function() {
+      it("can use the |offset| variable to get the current parse position", function() {
         var parser = PEG.buildParser(
-              'start = "a" &{ return _chunk.pos === 1; }',
+              'start = "a" &{ return offset === 1; }',
               options
             );
 
@@ -456,9 +455,9 @@ describe("generated parser", function() {
         expect(parser).toParse("a", ["a", ""]);
       });
 
-      it("can use the |_chunk.pos| variable to get the current parse position", function() {
+      it("can use the |offset| variable to get the current parse position", function() {
         var parser = PEG.buildParser(
-              'start = "a" !{ return _chunk.pos !== 1; }',
+              'start = "a" !{ return offset !== 1; }',
               options
             );
 
@@ -745,7 +744,7 @@ describe("generated parser", function() {
           var parser = PEG.buildParser('start = ', options);
 
           expect(parser).toFailToParse("a", {
-            message: 'Expected end of input, but "a" found.'
+            message: 'Expected end of input but "a" found.'
           });
         });
 
@@ -753,7 +752,7 @@ describe("generated parser", function() {
           var parser = PEG.buildParser('start = "a"', options);
 
           expect(parser).toFailToParse("b", {
-            message: 'Expected "a", but "b" found.'
+            message: 'Expected "a" but "b" found.'
           });
         });
 
@@ -761,7 +760,7 @@ describe("generated parser", function() {
           var parser = PEG.buildParser('start = "a" / "b" / "c"', options);
 
           expect(parser).toFailToParse("d", {
-            message: 'Expected "a", "b" or "c", but "d" found.'
+            message: 'Expected "a", "b" or "c" but "d" found.'
           });
         });
 
@@ -769,7 +768,7 @@ describe("generated parser", function() {
           var parser = PEG.buildParser('start = "a"', options);
 
           expect(parser).toFailToParse("", {
-            message: 'Expected "a", but end of input found.'
+            message: 'Expected "a" but end of input found.'
           });
         });
 
@@ -777,7 +776,7 @@ describe("generated parser", function() {
           var parser = PEG.buildParser('start = "a"', options);
 
           expect(parser).toFailToParse("b", {
-            message: 'Expected "a", but "b" found.'
+            message: 'Expected "a" but "b" found.'
           });
         });
       });
@@ -841,35 +840,11 @@ describe("generated parser", function() {
       });
     });
 
-    describe("context levels", function() {
-
-      it("wraps every action in context", function() {
-        var parser = PEG.buildParser([
-              //          b    (              (                     d   c   )          a  dc   a   b   )    c     f    (                   z   )          z   f   c   b adcab
-              'start = a:"b" b:(a:"a" b:"b" c:(a:"c" c:"d" { return c + a; }) { return a + c + a + b; }) c:"c" d:"f" e:(d:"ez" { return d[1]; }) { return e + d + c + a + b; }'
-            ].join("\n"), options);
-
-        expect(parser).toParse("babcdcfez", "zfcbadcab");
-      });
-
-      it("wraps every rule reference in context", function() {
-        this.fail("NI");
-      });
-
-      it("wraps every choise in context", function() {
-        this.fail("NI");
-      });
-
-      // TODO: use collect-blocks as a reference for tests where nesting required
-
-    });
-
     /*
      * Following examples are from Wikipedia, see
      * http://en.wikipedia.org/w/index.php?title=Parsing_expression_grammar&oldid=335106938.
      */
     describe("complex examples", function() {
-
       it("handles arithmetics example correctly", function() {
         /*
          * Value   ← [0-9]+ / '(' Expr ')'
@@ -976,28 +951,4 @@ describe("generated parser", function() {
       });
     });
   });
-
-// TODO: test _chunk variable (except _chunk.pos and with it) and option to split it in separate vars
-// TODO: test all options
-// TODO: test rules prepared once module is loaded
-// TODO: test user code has no access to outer functions
-// TODO: test operators prepared once module is loaded
-// TODO: test operators not executed when not required and executed in order
-// TODO: test all exported functions (including xpos here and there)
-// TODO: test context separately of all the things
-// TODO: test levels of context and variables are inaccessible between code block at the same level
-// TODO: test errors a lot (including internal information of the error, see https://github.com/shamansir/pegjs/compare/master...fixing-tests#L2R670
-// TODO: test positions a lot (if they are accessible to all blocks and stuff)
-// TODO: test that none of operators or rules are accessible inside client code
-// TODO: test that all of exported functions are accessible inside client code
-// TODO: test that only one exception reaches parser even if something failed couple of times
-// TODO: test that even rules parts are already compiled before first parse
-// TODO: test that chunk accessible only in action
-// TODO: test ctx is only in initializer,
-//            ctx/cpos is in only in semantic and/not
-//            and ctx/chunk is only in action
-// TODO: wrap in inner tests tree when changing to jasmine
-// TODO: test rname in MatchFailed error
-// TODO: test MatchFailed localisation? (use special codes for "any character" and the stuff)
-
 });
