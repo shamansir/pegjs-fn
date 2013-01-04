@@ -123,7 +123,7 @@ describe("generated parser", function() {
           'b = "x" { return "b"; }'
         ].join("\n"));
 
-    it("uses the fist rule as a start rule when no |startRule| is specified", function() {
+    it("uses the first rule as a start rule when no |startRule| is specified", function() {
       expect(parser.parse("x")).toBe("a");
     });
 
@@ -768,7 +768,7 @@ describe("generated parser", function() {
           var parser = PEG.buildParser('start = "a"', options);
 
           expect(parser).toFailToParse("", {
-            message: 'Expected "a" but end of input found.'
+            message: 'Expected "a", but end of input found.'
           });
         });
 
@@ -838,6 +838,29 @@ describe("generated parser", function() {
           });
         });
       });
+    });
+
+    describe("context levels", function() {
+
+      it("wraps every action in context", function() {
+        var parser = PEG.buildParser([
+              //          b    (              (                     d   c   )          a  dc   a   b   )    c     f    (                   z   )          z   f   c   b adcab
+              'start = a:"b" b:(a:"a" b:"b" c:(a:"c" c:"d" { return c + a; }) { return a + c + a + b; }) c:"c" d:"f" e:(d:"ez" { return d[1]; }) { return e + d + c + a + b; }'
+            ].join("\n"), options);
+
+        expect(parser).toParse("babcdcfez", "zfcbadcab");
+      });
+
+      it("wraps every rule reference in context", function() {
+        this.fail("NI");
+      });
+
+      it("wraps every choise in context", function() {
+        this.fail("NI");
+      });
+
+      // TODO: use collect-blocks as a reference for tests where nesting required
+
     });
 
     /*
@@ -949,6 +972,7 @@ describe("generated parser", function() {
           "(*abc(*def*)ghi(*(*(*jkl*)*)*)mno*)"
         );
       });
+
     });
   });
 });

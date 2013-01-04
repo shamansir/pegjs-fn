@@ -516,7 +516,7 @@ PEG.compiler.passes.generateCode = function(ast, options) {
             '                  : xs[0]);',
             '      }',
             '      return /*\'Stopped at \'+quote(e.what)+\': */\'Expected \'+exp_str+',
-            '             \', but \'+(forced_found||e.found)+\' found.\';', // \'+
+            '             \' but \'+(forced_found||e.found)+\' found.\';', // \'+
             //'           \'at \'+e.xpos.join(\':\');',
             '    }',
             '    function adapt(e) {',
