@@ -1,8 +1,8 @@
 describe("generated parser", function() {
   function vary(names, block) {
     var values = {
-          trackLineAndColumn: [false, true],
-          cache:              [false, true]
+          cache:    [false, true],
+          optimize: ["speed", "size"]
         };
 
     function varyStep(names, options) {
@@ -35,19 +35,22 @@ describe("generated parser", function() {
   }
 
   function varyAll(block) {
-    vary(["cache", "trackLineAndColumn"], block);
+    vary(["cache", "optimize"], block);
   }
 
   beforeEach(function() {
     this.addMatchers({
-      toParse: function(input, expected) {
-        var result;
+      toParse: function(input) {
+        var options  = arguments.length > 2 ? arguments[1] : {},
+            expected = arguments[arguments.length - 1],
+            result;
 
         try {
-          result = this.actual.parse(input);
+          result = this.actual.parse(input, options);
 
           this.message = function() {
             return "Expected " + jasmine.pp(input) + " "
+                 + "with options " + jasmine.pp(options) + " "
                  + (this.isNot ? "not " : "")
                  + "to parse as " + jasmine.pp(expected) + ", "
                  + "but it parsed as " + jasmine.pp(result) + ".";
@@ -57,6 +60,7 @@ describe("generated parser", function() {
         } catch (e) {
           this.message = function() {
             return "Expected " + jasmine.pp(input) + " "
+                 + "with options " + jasmine.pp(options) + " "
                  + "to parse as " + jasmine.pp(expected) + ", "
                  + "but it failed to parse with message "
                  + jasmine.pp(e.message) + ".";
@@ -66,14 +70,21 @@ describe("generated parser", function() {
         }
       },
 
-      toFailToParse: function(input, details) {
+      toFailToParse: function(input) {
+        var options = arguments.length > 2 ? arguments[1] : {},
+            details = arguments.length > 1
+                        ? arguments[arguments.length - 1]
+                        : undefined;
+
         /*
          * Extracted into a function just to silence JSHint complaining about
          * creating functions in a loop.
          */
         function buildKeyMessage(key, value) {
           return function() {
-            return "Expected " + jasmine.pp(input) + " to fail to parse"
+            return "Expected " + jasmine.pp(input) + " "
+                 + "with options " + jasmine.pp(options) + " "
+                 + "to fail to parse"
                  + (details ? " with details " + jasmine.pp(details) : "") + ", "
                  + "but " + jasmine.pp(key) + " "
                  + "is " + jasmine.pp(value) + ".";
@@ -83,10 +94,12 @@ describe("generated parser", function() {
         var result, key;
 
         try {
-          result = this.actual.parse(input);
+          result = this.actual.parse(input, options);
 
           this.message = function() {
-            return "Expected " + jasmine.pp(input) + " to fail to parse"
+            return "Expected " + jasmine.pp(input) + " "
+                 + "with options " + jasmine.pp(options) + " "
+                 + "to fail to parse"
                  + (details ? " with details " + jasmine.pp(details) : "") + ", "
                  + "but it parsed as " + jasmine.pp(result) + ".";
           };
@@ -95,7 +108,9 @@ describe("generated parser", function() {
         } catch (e) {
           if (this.isNot) {
             this.message = function() {
-              return "Expected " + jasmine.pp(input) + " to parse, "
+              return "Expected " + jasmine.pp(input)
+                   + "with options " + jasmine.pp(options) + " "
+                   + "to parse, "
                    + "but it failed with message "
                    + jasmine.pp(e.message) + ".";
             };
@@ -120,22 +135,31 @@ describe("generated parser", function() {
   describe("parse", function() {
     var parser = PEG.buildParser([
           'a = "x" { return "a"; }',
-          'b = "x" { return "b"; }'
-        ].join("\n"));
+          'b = "x" { return "b"; }',
+          'c = "x" { return "c"; }'
+        ].join("\n"), { allowedStartRules: ["b", "c"] });
 
-    it("uses the first rule as a start rule when no |startRule| is specified", function() {
-      expect(parser.parse("x")).toBe("a");
-    });
+    describe("start rule", function() {
+      describe("without the |startRule| option", function() {
+        it("uses the first allowed rule", function() {
+          expect(parser).toParse("x", "b");
+        });
+      });
 
-    it("uses the specified rule as a start rule when |startRule| is specified", function() {
-      expect(parser.parse("x", "a")).toBe("a");
-      expect(parser.parse("x", "b")).toBe("b");
-    });
+      describe("when the |startRule| option specifies allowed rule", function() {
+        it("uses the specified rule", function() {
+          expect(parser).toParse("x", { startRule: "b" }, "b");
+          expect(parser).toParse("x", { startRule: "c" }, "c");
+        });
+      });
 
-    it("throws exception when the specified start rule does not exist", function() {
-      expect(function() {
-        parser.parse("x", "c");
-      }).toThrow("Invalid rule name: \"c\".");
+      describe("when the |startRule| option specifies disallowed rule", function() {
+        it("throws exception", function() {
+          expect(parser).toFailToParse("x", { startRule: "a" }, {
+            message: "Can't start parsing from rule \"a\"."
+          });
+        });
+      });
     });
   });
 
@@ -144,10 +168,46 @@ describe("generated parser", function() {
       it("runs before the parsing begins", function() {
         var parser = PEG.buildParser([
               '{ var result = 42; }',
-              'start  = "a" { return result }'
+              'start = "a" { return result; }'
             ].join("\n"), options);
 
         expect(parser).toParse("a", 42);
+      });
+
+      it("can use the |text| function", function() {
+        var parser = PEG.buildParser([
+              '{ var result = text(); }',
+              'start = "a" { return result; }'
+            ].join("\n"), options);
+
+        expect(parser).toParse("a", "");
+      });
+
+      it("can use the |offset| function to get the current parse position", function() {
+        var parser = PEG.buildParser([
+              '{ var result = offset(); }',
+              'start = "a" { return result; }'
+            ].join("\n"), options);
+
+        expect(parser).toParse("a", 0);
+      });
+
+      it("can use the |line| and |column| functions to get the current line and column", function() {
+        var parser = PEG.buildParser([
+              '{ var result = [line(), column()]; }',
+              'start = "a" { return result; }'
+            ].join("\n"), options);
+
+        expect(parser).toParse("a", [1, 1]);
+      });
+
+      it("can use options passed to the parser", function() {
+        var parser = PEG.buildParser([
+              '{ var result = options; }',
+              'start = "a" { return result; }'
+            ].join("\n"), options);
+
+        expect(parser).toParse("a", { a: 42 }, { a: 42 });
       });
     });
 
@@ -225,39 +285,46 @@ describe("generated parser", function() {
         expect(parser).toParse("a", "a");
       });
 
-      it("can use the |offset| variable to get the current parse position", function() {
+      it("can use the |text| function to get the text matched by the expression", function() {
         var parser = PEG.buildParser(
-              'start = "a" ("b" { return offset; })',
+              'start = "a" "b" "c" { return text(); }',
+              options
+            );
+
+        expect(parser).toParse("abc", "abc");
+      });
+
+      it("can use the |offset| function to get the current parse position", function() {
+        var parser = PEG.buildParser(
+              'start = "a" ("b" { return offset(); })',
               options
             );
 
         expect(parser).toParse("ab", ["a", 1]);
       });
 
-      if (options.trackLineAndColumn) {
-        it("can use the |line| and |column| variables to get the current line and column", function() {
-          var parser = PEG.buildParser([
-                '{ var result; }',
-                'start  = line (nl+ line)* { return result; }',
-                'line   = thing (" "+ thing)*',
-                'thing  = digit / mark',
-                'digit  = [0-9]',
-                'mark   = "x" { result = [line, column]; }',
-                'nl     = ("\\r" / "\\n" / "\\u2028" / "\\u2029")'
-              ].join("\n"), options);
+      it("can use the |line| and |column| functions to get the current line and column", function() {
+        var parser = PEG.buildParser([
+              '{ var result; }',
+              'start  = line (nl+ line)* { return result; }',
+              'line   = thing (" "+ thing)*',
+              'thing  = digit / mark',
+              'digit  = [0-9]',
+              'mark   = "x" { result = [line(), column()]; }',
+              'nl     = ("\\r" / "\\n" / "\\u2028" / "\\u2029")'
+            ].join("\n"), options);
 
-          expect(parser).toParse("1\n2\n\n3\n\n\n4 5 x", [7, 5]);
+        expect(parser).toParse("1\n2\n\n3\n\n\n4 5 x", [7, 5]);
 
-          /* Non-Unix newlines */
-          expect(parser).toParse("1\rx",   [2, 1]); // Old Mac
-          expect(parser).toParse("1\r\nx", [2, 1]); // Windows
-          expect(parser).toParse("1\n\rx", [3, 1]); // mismatched
+        /* Non-Unix newlines */
+        expect(parser).toParse("1\rx",   [2, 1]); // Old Mac
+        expect(parser).toParse("1\r\nx", [2, 1]); // Windows
+        expect(parser).toParse("1\n\rx", [3, 1]); // mismatched
 
-          /* Strange newlines */
-          expect(parser).toParse("1\u2028x", [2, 1]); // line separator
-          expect(parser).toParse("1\u2029x", [2, 1]); // paragraph separator
-        });
-      }
+        /* Strange newlines */
+        expect(parser).toParse("1\u2028x", [2, 1]); // line separator
+        expect(parser).toParse("1\u2029x", [2, 1]); // paragraph separator
+      });
 
       it("can use variables defined in the initializer", function() {
         var parser = PEG.buildParser([
@@ -275,6 +342,15 @@ describe("generated parser", function() {
             ].join("\n"), options);
 
         expect(parser).toParse("a", 42);
+      });
+
+      it("can use options passed to the parser", function() {
+        var parser = PEG.buildParser(
+              'start = "a" { return options; }',
+              options
+            );
+
+        expect(parser).toParse("a", { a: 42 }, { a: 42 });
       });
 
       it("does not advance position when the expression matches but the action returns |null|", function() {
@@ -313,6 +389,14 @@ describe("generated parser", function() {
 
         expect(parser).toParse("a", "a");
         expect(parser).toFailToParse("b");
+      });
+    });
+
+    describe("text matching", function() {
+      it("matches correctly", function() {
+        var parser = PEG.buildParser('start = $("a" "b" "c")', options);
+
+        expect(parser).toParse("abc", "abc");
       });
     });
 
@@ -380,39 +464,46 @@ describe("generated parser", function() {
         expect(parser).toParse("a", ["a", ""]);
       });
 
-      it("can use the |offset| variable to get the current parse position", function() {
+      it("can use the |text| function", function() {
         var parser = PEG.buildParser(
-              'start = "a" &{ return offset === 1; }',
+              'start = "a" &{ return text() === ""; }',
               options
             );
 
         expect(parser).toParse("a", ["a", ""]);
       });
 
-      if (options.trackLineAndColumn) {
-        it("can use the |line| and |column| variables to get the current line and column", function() {
-          var parser = PEG.buildParser([
-                '{ var result; }',
-                'start  = line (nl+ line)* { return result; }',
-                'line   = thing (" "+ thing)*',
-                'thing  = digit / mark',
-                'digit  = [0-9]',
-                'mark   = &{ result = [line, column]; return true; } "x"',
-                'nl     = ("\\r" / "\\n" / "\\u2028" / "\\u2029")'
-              ].join("\n"), options);
+      it("can use the |offset| function to get the current parse position", function() {
+        var parser = PEG.buildParser(
+              'start = "a" &{ return offset() === 1; }',
+              options
+            );
 
-          expect(parser).toParse("1\n2\n\n3\n\n\n4 5 x", [7, 5]);
+        expect(parser).toParse("a", ["a", ""]);
+      });
 
-          /* Non-Unix newlines */
-          expect(parser).toParse("1\rx",   [2, 1]); // Old Mac
-          expect(parser).toParse("1\r\nx", [2, 1]); // Windows
-          expect(parser).toParse("1\n\rx", [3, 1]); // mismatched
+      it("can use the |line| and |column| functions to get the current line and column", function() {
+        var parser = PEG.buildParser([
+              '{ var result; }',
+              'start  = line (nl+ line)* { return result; }',
+              'line   = thing (" "+ thing)*',
+              'thing  = digit / mark',
+              'digit  = [0-9]',
+              'mark   = &{ result = [line(), column()]; return true; } "x"',
+              'nl     = ("\\r" / "\\n" / "\\u2028" / "\\u2029")'
+            ].join("\n"), options);
 
-          /* Strange newlines */
-          expect(parser).toParse("1\u2028x", [2, 1]); // line separator
-          expect(parser).toParse("1\u2029x", [2, 1]); // paragraph separator
-        });
-      }
+        expect(parser).toParse("1\n2\n\n3\n\n\n4 5 x", [7, 5]);
+
+        /* Non-Unix newlines */
+        expect(parser).toParse("1\rx",   [2, 1]); // Old Mac
+        expect(parser).toParse("1\r\nx", [2, 1]); // Windows
+        expect(parser).toParse("1\n\rx", [3, 1]); // mismatched
+
+        /* Strange newlines */
+        expect(parser).toParse("1\u2028x", [2, 1]); // line separator
+        expect(parser).toParse("1\u2029x", [2, 1]); // paragraph separator
+      });
 
       it("can use variables defined in the initializer", function() {
         var parser = PEG.buildParser([
@@ -430,6 +521,15 @@ describe("generated parser", function() {
             ].join("\n"), options);
 
         expect(parser).toParse("a", ["a", ""]);
+      });
+
+      it("can use options passed to the parser", function() {
+        var parser = PEG.buildParser([
+              '{ var result; }',
+              'start = "a" &{ result = options; return true; } { return result; }'
+            ].join("\n"), options);
+
+        expect(parser).toParse("a", { a: 42 }, { a: 42 });
       });
     });
 
@@ -455,39 +555,46 @@ describe("generated parser", function() {
         expect(parser).toParse("a", ["a", ""]);
       });
 
-      it("can use the |offset| variable to get the current parse position", function() {
+      it("can use the |text| function", function() {
         var parser = PEG.buildParser(
-              'start = "a" !{ return offset !== 1; }',
+              'start = "a" !{ return text() !== ""; }',
               options
             );
 
         expect(parser).toParse("a", ["a", ""]);
       });
 
-      if (options.trackLineAndColumn) {
-        it("can use the |line| and |column| variables to get the current line and column", function() {
-          var parser = PEG.buildParser([
-                '{ var result; }',
-                'start  = line (nl+ line)* { return result; }',
-                'line   = thing (" "+ thing)*',
-                'thing  = digit / mark',
-                'digit  = [0-9]',
-                'mark   = !{ result = [line, column]; return false; } "x"',
-                'nl     = ("\\r" / "\\n" / "\\u2028" / "\\u2029")'
-              ].join("\n"), options);
+      it("can use the |offset| function to get the current parse position", function() {
+        var parser = PEG.buildParser(
+              'start = "a" !{ return offset() !== 1; }',
+              options
+            );
 
-          expect(parser).toParse("1\n2\n\n3\n\n\n4 5 x", [7, 5]);
+        expect(parser).toParse("a", ["a", ""]);
+      });
 
-          /* Non-Unix newlines */
-          expect(parser).toParse("1\rx",   [2, 1]); // Old Mac
-          expect(parser).toParse("1\r\nx", [2, 1]); // Windows
-          expect(parser).toParse("1\n\rx", [3, 1]); // mismatched
+      it("can use the |line| and |column| functions to get the current line and column", function() {
+        var parser = PEG.buildParser([
+              '{ var result; }',
+              'start  = line (nl+ line)* { return result; }',
+              'line   = thing (" "+ thing)*',
+              'thing  = digit / mark',
+              'digit  = [0-9]',
+              'mark   = !{ result = [line(), column()]; return false; } "x"',
+              'nl     = ("\\r" / "\\n" / "\\u2028" / "\\u2029")'
+            ].join("\n"), options);
 
-          /* Strange newlines */
-          expect(parser).toParse("1\u2028x", [2, 1]); // line separator
-          expect(parser).toParse("1\u2029x", [2, 1]); // paragraph separator
-        });
-      }
+        expect(parser).toParse("1\n2\n\n3\n\n\n4 5 x", [7, 5]);
+
+        /* Non-Unix newlines */
+        expect(parser).toParse("1\rx",   [2, 1]); // Old Mac
+        expect(parser).toParse("1\r\nx", [2, 1]); // Windows
+        expect(parser).toParse("1\n\rx", [3, 1]); // mismatched
+
+        /* Strange newlines */
+        expect(parser).toParse("1\u2028x", [2, 1]); // line separator
+        expect(parser).toParse("1\u2029x", [2, 1]); // paragraph separator
+      });
 
       it("can use variables defined in the initializer", function() {
         var parser = PEG.buildParser([
@@ -505,6 +612,15 @@ describe("generated parser", function() {
             ].join("\n"), options);
 
         expect(parser).toParse("a", ["a", ""]);
+      });
+
+      it("can use options passed to the parser", function() {
+        var parser = PEG.buildParser([
+              '{ var result; }',
+              'start = "a" !{ result = options; return false; } { return result; }'
+            ].join("\n"), options);
+
+        expect(parser).toParse("a", { a: 42 }, { a: 42 });
       });
     });
 
@@ -840,27 +956,69 @@ describe("generated parser", function() {
       });
     });
 
-    describe("context levels", function() {
+    describe("allowed start rules", function() {
+      var grammar = [
+            'a = "x"',
+            'b = "x"',
+            'c = "x"'
+          ].join("\n");
 
-      it("wraps every action in context", function() {
-        var parser = PEG.buildParser([
-              //          b    (              (                     d   c   )          a  dc   a   b   )    c     f    (                   z   )          z   f   c   b adcab
-              'start = a:"b" b:(a:"a" b:"b" c:(a:"c" c:"d" { return c + a; }) { return a + c + a + b; }) c:"c" d:"f" e:(d:"ez" { return d[1]; }) { return e + d + c + a + b; }'
-            ].join("\n"), options);
+      describe("without the |allowedStartRules| option", function() {
+        var parser = PEG.buildParser(grammar);
 
-        expect(parser).toParse("babcdcfez", "zfcbadcab");
+        it("allows the first rule", function() {
+          expect(parser).toParse("x", { startRule: "a" }, "x");
+        });
+
+        it("does not allow any other rules", function() {
+          expect(parser).toFailToParse("x", { startRule: "b" }, { });
+          expect(parser).toFailToParse("x", { startRule: "c" }, { });
+        });
       });
 
-      it("wraps every rule reference in context", function() {
-        this.fail("NI");
+      describe("with the |allowedStartRules| option", function() {
+        var parser = PEG.buildParser(grammar, { allowedStartRules: ["b", "c"] });
+
+        it("allows the specified rules", function() {
+          expect(parser).toParse("x", { startRule: "b" }, "x");
+          expect(parser).toParse("x", { startRule: "c" }, "x");
+        });
+
+        it("does not allow any other rules", function() {
+          expect(parser).toFailToParse("x", { startRule: "a" }, { });
+        });
+      });
+    });
+
+    describe("output", function() {
+      var grammar = 'start = "a"';
+
+      describe("without the |output| option", function() {
+        it("returns a parser object", function() {
+          var parser = PEG.buildParser(grammar);
+
+          expect(typeof parser).toBe("object");
+          expect(parser).toParse("a", "a");
+        });
       });
 
-      it("wraps every choise in context", function() {
-        this.fail("NI");
+      describe("when the |output| option is set to \"parser\"", function() {
+        it("returns a parser object", function() {
+          var parser = PEG.buildParser(grammar, { output: "parser" });
+
+          expect(typeof parser).toBe("object");
+          expect(parser).toParse("a", "a");
+        });
       });
 
-      // TODO: use collect-blocks as a reference for tests where nesting required
+      describe("when the |output| option is set to \"source\"", function() {
+        it("returns a parser source code", function() {
+          var source = PEG.buildParser(grammar, { output: "source" });
 
+          expect(typeof source).toBe("string");
+          expect(eval(source)).toParse("a", "a");
+        });
+      });
     });
 
     /*
@@ -972,7 +1130,6 @@ describe("generated parser", function() {
           "(*abc(*def*)ghi(*(*(*jkl*)*)*)mno*)"
         );
       });
-
     });
   });
 });
