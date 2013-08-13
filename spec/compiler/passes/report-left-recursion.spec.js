@@ -1,5 +1,5 @@
 describe("compiler pass |reportLeftRecursion|", function() {
-  var pass = PEG.compiler.passes.reportLeftRecursion;
+  var pass = PEG.compiler.passes.check.reportLeftRecursion;
 
   beforeEach(function() {
     this.addMatchers({
@@ -61,6 +61,10 @@ describe("compiler pass |reportLeftRecursion|", function() {
 
   it("reports left recursion inside a labeled", function() {
     expect(pass).toReportLeftRecursionIn('start = label:start');
+  });
+
+  it("reports left recursion inside a text", function() {
+    expect(pass).toReportLeftRecursionIn('start = $start');
   });
 
   it("reports left recursion inside a simple and", function() {

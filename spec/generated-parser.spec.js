@@ -91,7 +91,7 @@ describe("generated parser", function() {
           };
         }
 
-        var result, key;
+        var result;
 
         try {
           result = this.actual.parse(input, options);
@@ -106,6 +106,12 @@ describe("generated parser", function() {
 
           return false;
         } catch (e) {
+          /*
+           * Should be at the top level but then JSHint complains about bad for
+           * in variable.
+           */
+          var key;
+
           if (this.isNot) {
             this.message = function() {
               return "Expected " + jasmine.pp(input)
@@ -827,7 +833,14 @@ describe("generated parser", function() {
         });
 
         it("removes duplicates from expected strings", function() {
-          var parser = PEG.buildParser('start = "a" / "a"', options);
+          /*
+           * There was a bug in the code that manifested only with three
+           * duplicates. This is why the following test uses three choices
+           * instead of seemingly sufficient two.
+           *
+           * See https://github.com/dmajda/pegjs/pull/146.
+           */
+          var parser = PEG.buildParser('start = "a" / "a" / "a"', options);
 
           expect(parser).toFailToParse("b", { expected: ['"a"'] });
         });
@@ -1019,29 +1032,6 @@ describe("generated parser", function() {
           expect(eval(source)).toParse("a", "a");
         });
       });
-    });
-
-    describe("context levels", function() {
-
-      it("wraps every action in context", function() {
-        var parser = PEG.buildParser([
-              //          b    (              (                     d   c   )          a  dc   a   b   )    c     f    (                   z   )          z   f   c   b adcab
-              'start = a:"b" b:(a:"a" b:"b" c:(a:"c" c:"d" { return c + a; }) { return a + c + a + b; }) c:"c" d:"f" e:(d:"ez" { return d[1]; }) { return e + d + c + a + b; }'
-            ].join("\n"), options);
-
-        expect(parser).toParse("babcdcfez", "zfcbadcab");
-      });
-
-      it("wraps every rule reference in context", function() {
-        this.fail("NI");
-      });
-
-      it("wraps every choise in context", function() {
-        this.fail("NI");
-      });
-
-      // TODO: use collect-blocks as a reference for tests where nesting required
-
     });
 
     /*

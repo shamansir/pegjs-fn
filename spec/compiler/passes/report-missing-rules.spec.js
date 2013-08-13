@@ -1,5 +1,5 @@
 describe("compiler pass |reportMissingRules|", function() {
-  var pass = PEG.compiler.passes.reportMissingRules;
+  var pass = PEG.compiler.passes.check.reportMissingRules;
 
   beforeEach(function() {
     this.addMatchers({
@@ -62,6 +62,10 @@ describe("compiler pass |reportMissingRules|", function() {
 
   it("reports missing rule referenced from a labeled", function() {
     expect(pass).toReportMissingRuleIn('start = label:missing');
+  });
+
+  it("reports missing rule referenced from a text", function() {
+    expect(pass).toReportMissingRuleIn('start = $missing');
   });
 
   it("reports missing rule referenced from a simple and", function() {

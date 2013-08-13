@@ -1,10 +1,4 @@
-language: cpp
-compiler:
-  - gcc
-  - clang
-before_script:
-    - "sudo npm install -g uglify-js"
-    - "sudo npm install -g jshint"
-    - "sudo npm install -g jasmine-node"
-script: make clean dist parser && make spec
-# script: make clean parser dist && make spec
+language: node_js
+node_js:
+  - 0.6
+  - 0.8

@@ -1,4 +1,4 @@
 .DS_Store
-lib/*
-dist/*
-dev/*
+browser/*
+examples/*.js
+node_modules/*
