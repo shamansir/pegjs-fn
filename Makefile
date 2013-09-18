@@ -114,7 +114,7 @@ browserclean:
 
 # Run the spec suite
 spec:
-	$(JASMINE_NODE) --verbose $(SPEC_DIR)
+	$(JASMINE_NODE) --color --verbose $(SPEC_DIR)
 
 # Run the benchmark suite
 benchmark:
