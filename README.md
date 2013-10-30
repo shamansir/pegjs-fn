@@ -437,7 +437,7 @@ If your environment meets the requirements, run this:
 
 Now, if you ever change the code, you may eventually run:
 
-    make dist
+    make parser
 
 To run benchmark, use:
 
