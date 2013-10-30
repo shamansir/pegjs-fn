@@ -1,7 +1,7 @@
 PEG.js FuNctional
 =================
 
-[![Build Status](https://secure.travis-ci.org/shamansir/pegjs.png)](https://travis-ci.org/shamansir/pegjs)
+[![Build Status](https://secure.travis-ci.org/shamansir/pegjs-fn.png)](https://travis-ci.org/shamansir/pegjs-fn)
 
 PEG.js is a simple parser generator for JavaScript that produces fast parsers
 with excellent error reporting. You can use it to process complex data or
@@ -26,7 +26,7 @@ Features
 
 ### PEG.js FuNctional
 
-  Since [one recent commit](https://github.com/dmajda/pegjs/commit/fe1ca481abc7ee5a499a26eed226f06c9c2024d5) in original PegJS, this version is not named PegJS IMproved anymore (this commit fixes most of improvements I've wanted to achieve here), but just remains to be PEG.js FunCtional.
+  Since [one recent commit](https://github.com/dmajda/pegjs/commit/fe1ca481abc7ee5a499a26eed226f06c9c2024d5) in original PegJS, this version is not named PegJS IMproved anymore (this commit fixes most of improvements I've wanted to achieve here), but just remains to be PEG.js FuNctional.
 
   * Generated parsers are more human-readable and they are in JS-only, no bytecode (if it is a benefit for you; but I'll also make speed/size the comparison when tests will pass)
   * A virtual JS context is created for user code, so it lies in its own separate environment
@@ -208,7 +208,7 @@ braces (“{” and “}”). This code is executed before the generated parser 
 parsing. All variables and functions defined in the initializer are accessible
 in rule actions and semantic predicates. The code inside the initializer can
 access options passed to the parser using the `options` variable. Curly braces
-in the initializer code must be balanced. Let's look at the example grammar 
+in the initializer code must be balanced. Let's look at the example grammar
 from above using a simple initializer.
 
     {
