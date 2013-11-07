@@ -30,6 +30,8 @@ function printHelp() {
   util.puts("                                     parser will be allowed to start parsing");
   util.puts("                                     from (default: the first rule in the");
   util.puts("                                     grammar)");
+  util.puts("      --track-line-and-column        include line-and-column tracking code in");
+  util.puts("                                     the parser");
   util.puts("  -o, --optimize <goal>              select optimization for speed or size");
   util.puts("                                     (default: speed)");
   util.puts("      --plugin <plugin>              use a specified plugin (can be specified");
@@ -126,6 +128,10 @@ while (args.length > 0 && isOption(args[0])) {
       options.allowedStartRules = args[0]
         .split(",")
         .map(function(s) { return s.trim() });
+      break;
+
+    case "--track-line-and-column":
+      options.trackLineAndColumn = true;
       break;
 
     case "-o":
