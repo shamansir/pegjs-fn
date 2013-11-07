@@ -2,7 +2,8 @@ describe("generated parser", function() {
   function vary(names, block) {
     var values = {
           cache:    [false, true],
-          optimize: ["speed", "size"]
+          optimize: ["speed", "size"],
+          trackLineAndColumn: [false, true]
         };
 
     function varyStep(names, options) {
@@ -35,7 +36,7 @@ describe("generated parser", function() {
   }
 
   function varyAll(block) {
-    vary(["cache", "optimize"], block);
+    vary(["cache", "optimize", "trackLineAndColumn"], block);
   }
 
   beforeEach(function() {
@@ -198,14 +199,16 @@ describe("generated parser", function() {
         expect(parser).toParse("a", 0);
       });
 
-      it("can use the |line| and |column| functions to get the current line and column", function() {
-        var parser = PEG.buildParser([
-              '{ var result = [line(), column()]; }',
-              'start = "a" { return result; }'
-            ].join("\n"), options);
+      if (options.trackLineAndColumn) {
+        it("can use the |line| and |column| functions to get the current line and column", function() {
+          var parser = PEG.buildParser([
+                '{ var result = [line(), column()]; }',
+                'start = "a" { return result; }'
+              ].join("\n"), options);
 
-        expect(parser).toParse("a", [1, 1]);
-      });
+          expect(parser).toParse("a", [1, 1]);
+        });
+      }
 
       it("can use options passed to the parser", function() {
         var parser = PEG.buildParser([
@@ -309,28 +312,30 @@ describe("generated parser", function() {
         expect(parser).toParse("ab", ["a", 1]);
       });
 
-      it("can use the |line| and |column| functions to get the current line and column", function() {
-        var parser = PEG.buildParser([
-              '{ var result; }',
-              'start  = line (nl+ line)* { return result; }',
-              'line   = thing (" "+ thing)*',
-              'thing  = digit / mark',
-              'digit  = [0-9]',
-              'mark   = "x" { result = [line(), column()]; }',
-              'nl     = ("\\r" / "\\n" / "\\u2028" / "\\u2029")'
-            ].join("\n"), options);
+      if (options.trackLineAndColumn) {
+        it("can use the |line| and |column| functions to get the current line and column", function() {
+          var parser = PEG.buildParser([
+                '{ var result; }',
+                'start  = line (nl+ line)* { return result; }',
+                'line   = thing (" "+ thing)*',
+                'thing  = digit / mark',
+                'digit  = [0-9]',
+                'mark   = "x" { result = [line(), column()]; }',
+                'nl     = ("\\r" / "\\n" / "\\u2028" / "\\u2029")'
+              ].join("\n"), options);
 
-        expect(parser).toParse("1\n2\n\n3\n\n\n4 5 x", [7, 5]);
+          expect(parser).toParse("1\n2\n\n3\n\n\n4 5 x", [7, 5]);
 
-        /* Non-Unix newlines */
-        expect(parser).toParse("1\rx",   [2, 1]); // Old Mac
-        expect(parser).toParse("1\r\nx", [2, 1]); // Windows
-        expect(parser).toParse("1\n\rx", [3, 1]); // mismatched
+          /* Non-Unix newlines */
+          expect(parser).toParse("1\rx",   [2, 1]); // Old Mac
+          expect(parser).toParse("1\r\nx", [2, 1]); // Windows
+          expect(parser).toParse("1\n\rx", [3, 1]); // mismatched
 
-        /* Strange newlines */
-        expect(parser).toParse("1\u2028x", [2, 1]); // line separator
-        expect(parser).toParse("1\u2029x", [2, 1]); // paragraph separator
-      });
+          /* Strange newlines */
+          expect(parser).toParse("1\u2028x", [2, 1]); // line separator
+          expect(parser).toParse("1\u2029x", [2, 1]); // paragraph separator
+        });
+      }
 
       it("can use variables defined in the initializer", function() {
         var parser = PEG.buildParser([
@@ -488,28 +493,30 @@ describe("generated parser", function() {
         expect(parser).toParse("a", ["a", ""]);
       });
 
-      it("can use the |line| and |column| functions to get the current line and column", function() {
-        var parser = PEG.buildParser([
-              '{ var result; }',
-              'start  = line (nl+ line)* { return result; }',
-              'line   = thing (" "+ thing)*',
-              'thing  = digit / mark',
-              'digit  = [0-9]',
-              'mark   = &{ result = [line(), column()]; return true; } "x"',
-              'nl     = ("\\r" / "\\n" / "\\u2028" / "\\u2029")'
-            ].join("\n"), options);
+      if (options.trackLineAndColumn) {
+        it("can use the |line| and |column| functions to get the current line and column", function() {
+          var parser = PEG.buildParser([
+                '{ var result; }',
+                'start  = line (nl+ line)* { return result; }',
+                'line   = thing (" "+ thing)*',
+                'thing  = digit / mark',
+                'digit  = [0-9]',
+                'mark   = &{ result = [line(), column()]; return true; } "x"',
+                'nl     = ("\\r" / "\\n" / "\\u2028" / "\\u2029")'
+              ].join("\n"), options);
 
-        expect(parser).toParse("1\n2\n\n3\n\n\n4 5 x", [7, 5]);
+          expect(parser).toParse("1\n2\n\n3\n\n\n4 5 x", [7, 5]);
 
-        /* Non-Unix newlines */
-        expect(parser).toParse("1\rx",   [2, 1]); // Old Mac
-        expect(parser).toParse("1\r\nx", [2, 1]); // Windows
-        expect(parser).toParse("1\n\rx", [3, 1]); // mismatched
+          /* Non-Unix newlines */
+          expect(parser).toParse("1\rx",   [2, 1]); // Old Mac
+          expect(parser).toParse("1\r\nx", [2, 1]); // Windows
+          expect(parser).toParse("1\n\rx", [3, 1]); // mismatched
 
-        /* Strange newlines */
-        expect(parser).toParse("1\u2028x", [2, 1]); // line separator
-        expect(parser).toParse("1\u2029x", [2, 1]); // paragraph separator
-      });
+          /* Strange newlines */
+          expect(parser).toParse("1\u2028x", [2, 1]); // line separator
+          expect(parser).toParse("1\u2029x", [2, 1]); // paragraph separator
+        });
+      }
 
       it("can use variables defined in the initializer", function() {
         var parser = PEG.buildParser([
@@ -579,28 +586,30 @@ describe("generated parser", function() {
         expect(parser).toParse("a", ["a", ""]);
       });
 
-      it("can use the |line| and |column| functions to get the current line and column", function() {
-        var parser = PEG.buildParser([
-              '{ var result; }',
-              'start  = line (nl+ line)* { return result; }',
-              'line   = thing (" "+ thing)*',
-              'thing  = digit / mark',
-              'digit  = [0-9]',
-              'mark   = !{ result = [line(), column()]; return false; } "x"',
-              'nl     = ("\\r" / "\\n" / "\\u2028" / "\\u2029")'
-            ].join("\n"), options);
+      if (options.trackLineAndColumn) {
+        it("can use the |line| and |column| functions to get the current line and column", function() {
+          var parser = PEG.buildParser([
+                '{ var result; }',
+                'start  = line (nl+ line)* { return result; }',
+                'line   = thing (" "+ thing)*',
+                'thing  = digit / mark',
+                'digit  = [0-9]',
+                'mark   = !{ result = [line(), column()]; return false; } "x"',
+                'nl     = ("\\r" / "\\n" / "\\u2028" / "\\u2029")'
+              ].join("\n"), options);
 
-        expect(parser).toParse("1\n2\n\n3\n\n\n4 5 x", [7, 5]);
+          expect(parser).toParse("1\n2\n\n3\n\n\n4 5 x", [7, 5]);
 
-        /* Non-Unix newlines */
-        expect(parser).toParse("1\rx",   [2, 1]); // Old Mac
-        expect(parser).toParse("1\r\nx", [2, 1]); // Windows
-        expect(parser).toParse("1\n\rx", [3, 1]); // mismatched
+          /* Non-Unix newlines */
+          expect(parser).toParse("1\rx",   [2, 1]); // Old Mac
+          expect(parser).toParse("1\r\nx", [2, 1]); // Windows
+          expect(parser).toParse("1\n\rx", [3, 1]); // mismatched
 
-        /* Strange newlines */
-        expect(parser).toParse("1\u2028x", [2, 1]); // line separator
-        expect(parser).toParse("1\u2029x", [2, 1]); // paragraph separator
-      });
+          /* Strange newlines */
+          expect(parser).toParse("1\u2028x", [2, 1]); // line separator
+          expect(parser).toParse("1\u2029x", [2, 1]); // paragraph separator
+        });
+      }
 
       it("can use variables defined in the initializer", function() {
         var parser = PEG.buildParser([
@@ -914,13 +923,17 @@ describe("generated parser", function() {
         it("reports position correctly with invalid input", function() {
           var parser = PEG.buildParser('start = "a"', options);
 
-          expect(parser).toFailToParse("b", { offset: 0, line: 1, column: 1 });
+          expect(parser).toFailToParse("b", options.trackLineAndColumn
+                                            ? { offset: 0, line: 1, column: 1 }
+                                            : { offset: 0 });
         });
 
         it("reports position correctly with trailing input", function() {
           var parser = PEG.buildParser('start = "a"', options);
 
-          expect(parser).toFailToParse("aa", { offset: 1, line: 1, column: 2});
+          expect(parser).toFailToParse("aa", options.trackLineAndColumn
+                                             ? { offset: 1, line: 1, column: 2 }
+                                             : { offset: 1 });
         });
 
         it("reports position correctly in complex cases", function() {
@@ -931,39 +944,57 @@ describe("generated parser", function() {
                 'nl     = ("\\r" / "\\n" / "\\u2028" / "\\u2029")'
               ].join("\n"), options);
 
-          expect(parser).toFailToParse("1\n2\n\n3\n\n\n4 5 x", {
+          expect(parser).toFailToParse("1\n2\n\n3\n\n\n4 5 x",
+          options.trackLineAndColumn ? {
             offset: 13,
             line:   7,
             column: 5
+          } : {
+            offset: 13
           });
 
           /* Non-Unix newlines */
-          expect(parser).toFailToParse("1\rx", {   // Old Mac
+          expect(parser).toFailToParse("1\rx",   // Old Mac
+          options.trackLineAndColumn ? {
             offset: 2,
             line:   2,
             column: 1
+          } : {
+            offset: 2
           });
-          expect(parser).toFailToParse("1\r\nx", { // Windows
+          expect(parser).toFailToParse("1\r\nx", // Windows
+          options.trackLineAndColumn ? {
             offset: 3,
             line:   2,
             column: 1
+          } : {
+            offset: 3
           });
-          expect(parser).toFailToParse("1\n\rx", { // mismatched
+          expect(parser).toFailToParse("1\n\rx", // mismatched
+          options.trackLineAndColumn ? {
             offset: 3,
             line:   3,
             column: 1
+          } : {
+            offset: 3
           });
 
           /* Strange newlines */
-          expect(parser).toFailToParse("1\u2028x", { // line separator
+          expect(parser).toFailToParse("1\u2028x", // line separator
+          options.trackLineAndColumn ? {
             offset: 2,
             line:   2,
             column: 1
+          } : {
+            offset: 2
           });
-          expect(parser).toFailToParse("1\u2029x", { // paragraph separator
+          expect(parser).toFailToParse("1\u2029x", // paragraph separator
+          options.trackLineAndColumn ? {
             offset: 2,
             line:   2,
             column: 1
+          } : {
+            offset: 2
           });
         });
       });
