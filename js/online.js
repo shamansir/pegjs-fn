@@ -52,6 +52,12 @@ $(document).ready(function() {
       });
       var timeAfter = (new Date).getTime();
 
+      parserSrc = PEG.buildParser($("#grammar").val(), {
+        cache:              $("#option-cache").is(":checked"),
+        trackLineAndColumn: $("#option-track-line-and-column").is(":checked"),
+        output:             "source"
+      });
+
       $("#build-message")
         .attr("class", "message info")
         .html("Parser built successfully.")
@@ -61,7 +67,7 @@ $(document).ready(function() {
           timeAfter - timeBefore
         ));
       var parserUrl = "data:text/plain;charset=utf-8;base64,"
-        + Base64.encode($("#parser-var").val() + " = " + parser.toSource() + ";\n");
+        + Base64.encode($("#parser-var").val() + " = " + parserSrc + ";\n");
       $("#input").removeAttr("disabled");
       $("#parser-var").removeAttr("disabled");
       $("#option-cache").removeAttr("disabled");
