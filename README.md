@@ -26,9 +26,9 @@ Features
 
 ### PEG.js FuNctional
 
-  Since [one recent commit](https://github.com/dmajda/pegjs/commit/fe1ca481abc7ee5a499a26eed226f06c9c2024d5) in original PegJS, this version is not named PegJS IMproved anymore (this commit fixes most of improvements I've wanted to achieve here), but just remains to be PEG.js FuNctional.
+Since [one recent commit](https://github.com/dmajda/pegjs/commit/fe1ca481abc7ee5a499a26eed226f06c9c2024d5) in original PegJS, this version is not named PegJS IMproved anymore (this commit fixes most of improvements I've wanted to achieve here), but just remains to be PEG.js FuNctional.
 
-  Prons:
+Prons:
 
   * Generated parsers are more human-readable and they are in JS-only, no bytecode (if it is a benefit for you)
   * A virtual JS context is created for user code, so it lies in its own separate environment
@@ -39,9 +39,9 @@ Features
   * Algorythm is exception-driven, which is a bit safer, a bit simpler and a bit faster way
   * [found/expected data in error is now included in standard peg.js]
 
-  Cons:
+Cons:
 
-  * **Serious**. Currently, **20-40** times *slower* than original PEG.js
+  * **Seriously**. Currently, **20-40** times *slower* than original PEG.js
 
 ### Real example of differences
 
