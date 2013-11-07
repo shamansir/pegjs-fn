@@ -21,14 +21,16 @@ Features
   * Based on [parsing expression
     grammar](http://en.wikipedia.org/wiki/Parsing_expression_grammar) formalism
     — more powerful than traditional LL(*k*) and LR(*k*) parsers
-  * Usable [from your browser](http://pegjs.majda.cz/online), from the command
+  * Usable [from your browser](http://shamansir.github.io/pegjs-fn/), from the command
     line, or via JavaScript API
 
 ### PEG.js FuNctional
 
   Since [one recent commit](https://github.com/dmajda/pegjs/commit/fe1ca481abc7ee5a499a26eed226f06c9c2024d5) in original PegJS, this version is not named PegJS IMproved anymore (this commit fixes most of improvements I've wanted to achieve here), but just remains to be PEG.js FuNctional.
 
-  * Generated parsers are more human-readable and they are in JS-only, no bytecode (if it is a benefit for you; but I'll also make speed/size the comparison when tests will pass)
+  Prons:
+
+  * Generated parsers are more human-readable and they are in JS-only, no bytecode (if it is a benefit for you)
   * A virtual JS context is created for user code, so it lies in its own separate environment
   * The operators and utils functions that not used in grammar are not included to parser code
   * The parser code that should be executed once — is executed once (this was also fixed in the main version, however)
@@ -37,14 +39,90 @@ Features
   * Algorythm is exception-driven, which is a bit safer, a bit simpler and a bit faster way
   * [found/expected data in error is now included in standard peg.js]
 
-<!-- http://bosker.wordpress.com/2012/05/10/on-editing-text/ -->
+  Cons:
+
+  * **Serious**. Currently, **20-40** times *slower* than original PEG.js
+
+### Real example of differences
+
+[See complete examples here](https://gist.github.com/shamansir/7348144)
+
+Excerpt from parser generated with [original PEG.js](http://pegjs.majda.cz):
+
+```javascript
+function peg$parseadditive() {
+  var s0, s1, s2, s3;
+
+  s0 = peg$currPos;
+  s1 = peg$parsemultiplicative();
+  if (s1 !== null) {
+    if (input.charCodeAt(peg$currPos) === 43) {
+      s2 = peg$c1;
+      peg$currPos++;
+    } else {
+      s2 = null;
+      if (peg$silentFails === 0) { peg$fail(peg$c2); }
+    }
+    if (s2 !== null) {
+      s3 = peg$parseadditive();
+      if (s3 !== null) {
+        peg$reportedPos = s0;
+        s1 = peg$c3(s1, s3);
+        if (s1 === null) {
+          peg$currPos = s0;
+          s0 = s1;
+        } else {
+          s0 = s1;
+        }
+      } else {
+        peg$currPos = s0;
+        s0 = peg$c0;
+      }
+    } else {
+      peg$currPos = s0;
+      s0 = peg$c0;
+    }
+  } else {
+    peg$currPos = s0;
+    s0 = peg$c0;
+  }
+  if (s0 === null) {
+    s0 = peg$parsemultiplicative();
+  }
+
+  return s0;
+}
+```
+
+Excerpt from parser generated with [PEG.js-FN](http://shamansir.github.io/pegjs-fn/):
+
+```javascript
+rules.additive = function() {
+  var _code = ƒ.additive;
+  return (
+    choice(
+      action(
+        seqnc(
+          label("left",
+            ref(rules.multiplicative)
+          ),
+          match("+"),
+          label("right",
+            ref(rules.additive)
+          )
+        ),
+        _code[0])
+        /*{ return left + right; }*/,
+      ref(rules.multiplicative)
+    )
+  ());
+}
+```
 
 Getting Started
 ---------------
 
-[Online version](http://pegjs.majda.cz/online) is the easiest way to generate a
-parser. Just enter your grammar, try parsing few inputs, and download generated
-parser code.
+[Online version](http://shamansir.github.io/pegjs-fn/) ([Original one](http://pegjs.majda.cz/online), note the difference in color scheme) is the easiest way to generate a parser. Just enter your grammar, try parsing few inputs, and download generated parser code.
 
 Installation
 ------------
@@ -64,13 +142,12 @@ ways.
 
 ### Browser
 
-[Download](http://pegjs.majda.cz/#download) the PEG.js library (regular or
-minified version).
+[Download](https://github.com/shamansir/pegjs-fn/tree/gh-pages/vendor/pegjs-fn) the PEG.js-FN library (regular or minified version).
 
 Generating a Parser
 -------------------
 
-PEG.js generates parser from a grammar that describes expected input and can
+PEG.js-FN generates parser from a grammar that describes expected input and can
 specify what the parser returns (using semantic actions on matched parts of the
 input). Generated parser itself is a JavaScript object with a simple API.
 
@@ -98,6 +175,7 @@ You can tweak the generated parser with several options:
     time in pathological cases but making the parser slower
   * `--allowed-start-rules` — comma-separated list of rules the parser will be
     allowed to start parsing from (default: the first rule in the grammar)
+  * `--track-line-and-column` — include line-and-column tracking code in the parser
   * `--plugin` — makes PEG.js use a specified plugin (can be specified multiple
     times)
   * `--extra-options` — additional options (in JSON format) to pass to
@@ -132,6 +210,9 @@ object to `PEG.buildParser`. The following options are supported:
     `false`)
   * `allowedStartRules` — rules the parser will be allowed to start parsing from
     (default: the first rule in the grammar)
+  * `trackLineAndColumn` — include a line-and-column tracking code in the parser
+    for errors and user-code to know the two-dimentional position
+    (default: false)
   * `output` — if set to `"parser"`, the method will return generated parser
     object; if set to `"source"`, it will return parser source code as a string
     (default: `"parser"`)
