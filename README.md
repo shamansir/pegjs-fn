@@ -3,6 +3,8 @@ PEG.js FuNctional
 
 [![Build Status](https://secure.travis-ci.org/shamansir/pegjs-fn.png)](https://travis-ci.org/shamansir/pegjs-fn)
 
+* [A detailed blog article about peg.js-fn](http://shamansir.github.io/blog/articles/generating-functional-parsers/)
+
 PEG.js is a simple parser generator for JavaScript that produces fast parsers
 with excellent error reporting. You can use it to process complex data or
 computer languages and build transformers, interpreters, compilers and other
