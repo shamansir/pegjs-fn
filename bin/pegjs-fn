@@ -12,7 +12,7 @@ function printVersion() {
 }
 
 function printHelp() {
-  util.puts("Usage: pegjs [options] [--] [<input_file>] [<output_file>]");
+  util.puts("Usage: pegjs-fn [options] [--] [<input_file>] [<output_file>]");
   util.puts("");
   util.puts("Generates a parser from the PEG grammar specified in the <input_file> and writes");
   util.puts("it to the <output_file>.");

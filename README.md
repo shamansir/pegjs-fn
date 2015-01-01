@@ -36,12 +36,12 @@ Prons:
   * The parser code that should be executed once — is executed once (this was also fixed in the main version, however)
   * The actions variables are strict and given in as arguments to action code
   * The actual tests from standard PEG.js used for testing, expanded with tests on improvements
-  * Algorythm is exception-driven, which is a bit safer, a bit simpler and a bit faster way
+  * Algorithm is exception-driven, which is a bit safer, a bit simpler and a bit faster way
   * [found/expected data in error is now included in standard peg.js]
 
 Cons:
 
-  * **Seriously**. Currently, **20-40** times *slower* than original PEG.js
+  * **Seriously**. Currently, **20-40** times *slower* in parsing than original PEG.js
 
 ### Real example of differences
 
@@ -129,15 +129,15 @@ Installation
 
 ### Node.js
 
-To use the `pegjs` command, install PEG.js globally:
+To use the `pegjs-fn` command, install PEG.js-FN globally:
 
-    $ npm install -g pegjs
+    $ npm install -g pegjs-fn
 
 To use the JavaScript API, install PEG.js locally:
 
-    $ npm install pegjs
+    $ npm install pegjs-fn
 
-If you need both the `pegjs` command and the JavaScript API, install PEG.js both
+If you need both the `pegjs-fn` command and the JavaScript API, install PEG.js both
 ways.
 
 ### Browser
@@ -155,12 +155,12 @@ input). Generated parser itself is a JavaScript object with a simple API.
 
 To generate a parser from your grammar, use the `pegjs` command:
 
-    $ pegjs arithmetics.pegjs
+    $ pegjs-fn arithmetics.pegjs
 
 This writes parser source code into a file with the same name as the grammar
 file but with “.js” extension. You can also specify the output file explicitly:
 
-    $ pegjs arithmetics.pegjs arithmetics-parser.js
+    $ pegjs-fn arithmetics.pegjs arithmetics-parser.js
 
 If you omit both input and ouptut file, standard input and output are used.
 

@@ -1,30 +1,36 @@
 {
-  "name":            "pegjs",
-  "version":         "0.7.0",
-  "description":     "Parser generator for JavaScript",
-  "homepage":        "http://pegjs.majda.cz/",
+  "name":            "pegjs-fn",
+  "version":         "0.1.0",
+  "description":     "Functional version of PegJS, Parser generator for JavaScript",
+  "homepage":        "http://shamansir.github.io/pegjs-fn/",
   "author":          {
     "name":  "David Majda",
     "email": "david@majda.cz",
     "url":   "http://majda.cz/"
   },
+  "contributors": [{
+    "name": "Anton Kotenko",
+    "email": "shaman.sir@gmail.com"
+  }],
   "files": [
     "CHANGELOG",
     "LICENSE",
     "README.md",
     "VERSION",
-    "bin/pegjs",
+    "bin/pegjs-fn",
     "examples/arithmetics.pegjs",
     "examples/css.pegjs",
     "examples/javascript.pegjs",
     "examples/json.pegjs",
     "lib/compiler.js",
     "lib/compiler/opcodes.js",
-    "lib/compiler/passes/generate-bytecode.js",
-    "lib/compiler/passes/generate-javascript.js",
+    "lib/compiler/passes/collect-blocks.js",
+    "lib/compiler/passes/compute-occurences.js",
+    "lib/compiler/passes/generate-fn-driven-javascript.js",
     "lib/compiler/passes/remove-proxy-rules.js",
     "lib/compiler/passes/report-left-recursion.js",
     "lib/compiler/passes/report-missing-rules.js",
+    "lib/compiler.js",
     "lib/grammar-error.js",
     "lib/parser.js",
     "lib/peg.js",
@@ -32,13 +38,13 @@
     "package.json"
   ],
   "main":            "lib/peg",
-  "bin":             "bin/pegjs",
+  "bin":             "bin/pegjs-fn",
   "scripts":         {
     "test": "make spec"
   },
   "repository":      {
     "type": "git",
-    "url":  "http://github.com/dmajda/pegjs.git"
+    "url":  "http://github.com/shamansir/pegjs-fn.git"
   },
   "devDependencies": {
     "jasmine-node": "= 1.11.0",

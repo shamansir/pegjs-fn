@@ -1,6 +1,6 @@
 # ===== Variables =====
 
-PEGJS_VERSION = `cat $(VERSION_FILE)`
+PEGJSFN_VERSION = `cat $(VERSION_FILE)`
 
 # ===== Modules =====
 
@@ -33,8 +33,8 @@ NODE_MODULES_BIN_DIR = $(NODE_MODULES_DIR)/.bin
 PARSER_SRC_FILE = $(SRC_DIR)/parser.pegjs
 PARSER_OUT_FILE = $(LIB_DIR)/parser.js
 
-BROWSER_FILE_DEV = $(BROWSER_DIR)/peg-$(PEGJS_VERSION).js
-BROWSER_FILE_MIN = $(BROWSER_DIR)/peg-$(PEGJS_VERSION).min.js
+BROWSER_FILE_DEV = $(BROWSER_DIR)/peg-fn-$(PEGJSFN_VERSION).js
+BROWSER_FILE_MIN = $(BROWSER_DIR)/peg-fn-$(PEGJSFN_VERSION).min.js
 
 VERSION_FILE = VERSION
 
@@ -43,7 +43,7 @@ VERSION_FILE = VERSION
 JSHINT        = $(NODE_MODULES_BIN_DIR)/jshint
 UGLIFYJS      = $(NODE_MODULES_BIN_DIR)/uglifyjs
 JASMINE_NODE  = $(NODE_MODULES_BIN_DIR)/jasmine-node
-PEGJS         = $(BIN_DIR)/pegjs
+PEGJSFN       = $(BIN_DIR)/pegjs-fn
 BENCHMARK_RUN = $(BENCHMARK_DIR)/run
 
 # ===== Targets =====
@@ -53,7 +53,7 @@ all: browser
 
 # Generate the grammar parser
 parser:
-	$(PEGJS) $(PARSER_SRC_FILE) $(PARSER_OUT_FILE)
+	$(PEGJSFN) $(PARSER_SRC_FILE) $(PARSER_OUT_FILE)
 
 # Build the browser version of the library
 browser:
@@ -65,7 +65,11 @@ browser:
 	# The following code is inspired by CoffeeScript's Cakefile.
 
 	echo '/*'                                                                          >> $(BROWSER_FILE_DEV)
-	echo " * PEG.js $(PEGJS_VERSION)"                                                  >> $(BROWSER_FILE_DEV)
+	echo " * PEG-FN.js $(PEGJSFN_VERSION)"                                             >> $(BROWSER_FILE_DEV)
+	echo ' *'                                                                          >> $(BROWSER_FILE_DEV)
+	echo ' * http://shamansir.github.io/pegjs-fn'                                      >> $(BROWSER_FILE_DEV)
+	echo ' *'                                                                          >> $(BROWSER_FILE_DEV)
+	echo ' * Is a modification of:'                                                    >> $(BROWSER_FILE_DEV)
 	echo ' *'                                                                          >> $(BROWSER_FILE_DEV)
 	echo ' * http://pegjs.majda.cz/'                                                   >> $(BROWSER_FILE_DEV)
 	echo ' *'                                                                          >> $(BROWSER_FILE_DEV)
